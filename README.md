@@ -1,12 +1,16 @@
 # autodesk-forge-sdk
 
-Unofficial [Autodesk Forge](https://forge.autodesk.com) SDK for Python 3.* and above.
+Unofficial [Autodesk Forge](https://forge.autodesk.com) SDK for Python (3.*).
 
 ## Usage
+
+Install the package from PyPI:
 
 ```bash
 pip3 install autodesk-forge-sdk
 ```
+
+Start importing from `autodesk_forge_sdk`:
 
 ```python
 import os
