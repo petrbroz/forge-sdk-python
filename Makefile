@@ -16,5 +16,5 @@ docs:
 prepublish-check: build
 	python3 -m twine check dist/*
 
-publish-test: test build
-	python3 -m twine upload --repository testpypi dist/*
+publish: build
+	python3 -m twine upload dist/*
