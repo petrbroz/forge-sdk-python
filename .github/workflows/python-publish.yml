@@ -24,10 +24,15 @@ jobs:
         FORGE_CLIENT_SECRET: ${{ secrets.FORGE_CLIENT_SECRET }}
         FORGE_BUCKET: ${{ secrets.FORGE_BUCKET }}
       run: make test
-    - name: Generate docs
-      run: make docs
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: make publish
+    - name: Publish docs
+      run: make docs
+    - name: Deploy docs
+      uses: JamesIves/github-pages-deploy-action@4.1.1
+      with:
+        branch: gh-pages
+        folder: docs/autodesk_forge_sdk
