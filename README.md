@@ -10,16 +10,35 @@ Install the package from PyPI:
 pip3 install autodesk-forge-sdk
 ```
 
-Start importing from `autodesk_forge_sdk`:
+### Authentication
 
 ```python
 import os
 from autodesk_forge_sdk import AuthenticationClient
 
-FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
-FORGE_CLIENT_SECRET = os.environ["FORGE_CLIENT_SECRET"]
-
 client = AuthenticationClient()
-auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, ["viewables:read"])
+auth = client.authenticate(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"], ["viewables:read"])
 print(auth["access_token"])
+```
+
+### Data Management
+
+```python
+import os
+from autodesk_forge_sdk import OSSClient, ActiveTokenProvider
+
+client = OSSClient(ActiveTokenProvider(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"]))
+buckets = client.get_all_buckets()
+print(buckets)
+```
+
+Or, if you already have an access token:
+
+```python
+import os
+from autodesk_forge_sdk import OSSClient, PassiveTokenProvider
+
+client = OSSClient(PassiveTokenProvider(os.environ["FORGE_ACCESS_TOKEN"]))
+buckets = client.get_all_buckets()
+print(buckets)
 ```
