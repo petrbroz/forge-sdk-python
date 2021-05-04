@@ -2,7 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-from autodesk_forge_sdk import AuthenticationClient, OSSClient, ActiveTokenProvider, PassiveTokenProvider
+from autodesk_forge_sdk import AuthenticationClient, OSSClient, ModelDerivativeClient, urnify, ActiveTokenProvider, PassiveTokenProvider
 
 FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
 FORGE_CLIENT_SECRET = os.environ["FORGE_CLIENT_SECRET"]
