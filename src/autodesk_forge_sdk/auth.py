@@ -48,7 +48,7 @@ class AuthenticationClient(BaseClient):
     **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http
     """
 
-    def __init__(self, base_url=BASE_URL):
+    def __init__(self, base_url: str=BASE_URL):
         """
         Create new instance of the client.
 
@@ -57,7 +57,7 @@ class AuthenticationClient(BaseClient):
         """
         BaseClient.__init__(self, base_url)
 
-    def authenticate(self, client_id, client_secret, scopes):
+    def authenticate(self, client_id: str, client_secret: str, scopes: list[Scope]) -> dict:
         """
         Generate a two-legged access token for specific set of scopes.
 
@@ -88,7 +88,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post('/authenticate', form=form).json()
 
-    def get_authorization_url(self, client_id, response_type, redirect_uri, scopes, state=None):
+    def get_authorization_url(self, client_id: str, response_type: str, redirect_uri: str, scopes: list[Scope], state: str=None) -> str:
         """
         Generate a URL to redirect an end user to in order to acquire the user’s consent
         for your app to access the specified resources.
@@ -122,7 +122,7 @@ class AuthenticationClient(BaseClient):
             url += '&state={}'.format(quote(state))
         return url
 
-    def get_token(self, client_id, client_secret, code, redirect_uri):
+    def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
         """
         Exchange an authorization code extracted from `get_authorization_url` callback for a three-legged access token.
         This API will only be used when the 'Authorization Code' grant type is being adopted.
@@ -159,7 +159,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post('/gettoken', form=form).json()
 
-    def refresh_token(self, client_id, client_secret, refresh_token, scopes):
+    def refresh_token(self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -> dict:
         """
         Acquire a new access token by using the refresh token provided by `get_token`.
 
@@ -193,7 +193,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post('/refreshtoken', form=form).json()
 
-    def get_user_profile(self, access_token):
+    def get_user_profile(self, access_token: str) -> dict:
         """
         Get the profile information of an authorizing end user in a three-legged context.
 
@@ -217,7 +217,7 @@ class AuthenticationClient(BaseClient):
         return self._get('/users/@me', headers=headers).json()
 
 class TokenProviderInterface:
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -> str:
         """
         Generates access token for given set of scopes.
 
@@ -235,7 +235,7 @@ class SimpleTokenProvider(TokenProviderInterface):
     When using this approach, make sure that the hard-coded access token supports all the scopes that may be needed.
     """
 
-    def __init__(self, access_token):
+    def __init__(self, access_token: str):
         """
         Create new instance of the provider.
 
@@ -244,7 +244,7 @@ class SimpleTokenProvider(TokenProviderInterface):
         """
         self.access_token = access_token
 
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -> str:
         return self.access_token
 
 class OAuthTokenProvider(TokenProviderInterface):
@@ -252,7 +252,7 @@ class OAuthTokenProvider(TokenProviderInterface):
     Helper class that automatically generates (and caches) access tokens using specific app credentials.
     """
 
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id: str, client_secret: str):
         """
         Create new instance of the provider.
 
@@ -265,7 +265,7 @@ class OAuthTokenProvider(TokenProviderInterface):
         self.auth_client = AuthenticationClient()
         self.cache = {}
 
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -> str:
         cache_key = '+'.join(map(lambda s: s.value, scopes))
         now = datetime.now()
         if cache_key in self.cache:
@@ -277,7 +277,7 @@ class OAuthTokenProvider(TokenProviderInterface):
         return auth
 
 class BaseOAuthClient(BaseClient):
-    def __init__(self, token_provider, base_url):
+    def __init__(self, token_provider: TokenProviderInterface, base_url: str):
         """
         Create new instance of the client.
 
@@ -288,31 +288,31 @@ class BaseOAuthClient(BaseClient):
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
-    def _get(self, url, scopes, params=None, headers=None):
+    def _get(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._get(self, url, params, headers)
 
-    def _post(self, url, scopes, form=None, json=None, buff=None, params=None, headers=None):
+    def _post(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._post(self, url, form, json, buff, params, headers)
 
-    def _put(self, url, scopes, form=None, json=None, buff=None, params=None, headers=None):
+    def _put(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._put(self, url, form, json, buff, params, headers)
 
-    def _delete(self, url, scopes, params=None, headers=None):
+    def _delete(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._delete(self, url, params, headers)
 
-    def _set_auth_headers(self, headers, scopes):
+    def _set_auth_headers(self, headers: dict, scopes: list[Scope]):
         if not 'Authorization' in headers:
             auth = self.token_provider.get_token(scopes)
             headers['Authorization'] = 'Bearer {}'.format(auth['access_token'])
