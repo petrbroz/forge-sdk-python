@@ -28,7 +28,7 @@
 </summary>
 <pre><code class="python">from enum import Enum
 from urllib.parse import quote
-from .auth import BaseOAuthClient, Scope, TokenProviderInterface
+from .auth import BaseOAuthClient, Scope, TokenProviderInterface, SimpleTokenProvider, OAuthTokenProvider
 
 BASE_URL = &#39;https://developer.api.autodesk.com/oss/v2&#39;
 READ_SCOPES = [Scope.BucketRead, Scope.DataRead]
@@ -67,17 +67,36 @@ class OSSClient(BaseOAuthClient):
     **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, token_provider, base_url=BASE_URL):
+    def __init__(self, token_provider: TokenProviderInterface(), base_url: str = BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
         Args:
-            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            token_provider (autodesk_forge_sdk.auth.TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+
+                Use `autodesk_forge_sdk.auth.OAuthTokenProvider` if you have your app&#39;s client ID and client secret available,
+                `autodesk_forge_sdk.auth.SimpleTokenProvider` if you would like to use an existing access token instead,
+                or even your own implementation of the `autodesk_forge_sdk.auth.TokenProviderInterface` interface.
             base_url (str, optional): Base URL for API calls.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            client1 = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+
+            FORGE_ACCESS_TOKEN = os.environ[&#34;FORGE_ACCESS_TOKEN&#34;]
+            client2 = OSSClient(SimpleTokenProvider(FORGE_ACCESS_TOKEN))
+
+            class MyTokenProvider(autodesk_forge_sdk.auth.TokenProviderInterface):
+                def get_token(self, scopes):
+                    return &#34;your own access token retrieved from wherever&#34;
+            client3 = OSSClient(MyTokenProvider())
+            ```
         &#34;&#34;&#34;
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
-    def _get_paginated(self, url, scopes, params=None, headers=None):
+    def _get_paginated(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None) -&gt; list:
         items = []
         while url:
             json = self._get(url, scopes, params, headers).json()
@@ -88,7 +107,7 @@ class OSSClient(BaseOAuthClient):
                 url = None
         return items
 
-    def get_buckets(self, region=None, limit=None, start_at=None):
+    def get_buckets(self, region: str=None, limit: int=None, start_at: str=None) -&gt; dict:
         &#34;&#34;&#34;
         List buckets owned by the application, using pagination.
 
@@ -121,7 +140,7 @@ class OSSClient(BaseOAuthClient):
             params[&#39;startAt&#39;] = start_at
         return self._get(&#39;/buckets&#39;, READ_SCOPES, params).json()
 
-    def get_all_buckets(self, region=None):
+    def get_all_buckets(self, region: str=None) -&gt; list:
         &#34;&#34;&#34;
         List all buckets owned by the application. Similar to `OSSClient.get_buckets` but returning all results without pagination.
 
@@ -147,7 +166,7 @@ class OSSClient(BaseOAuthClient):
             params[&#39;region&#39;] = region
         return self._get_paginated(&#39;/buckets&#39;, READ_SCOPES, params)
 
-    def get_bucket_details(self, bucket_key):
+    def get_bucket_details(self, bucket_key: str) -&gt; dict:
         &#34;&#34;&#34;
         Get bucket details in JSON format if the caller is the owner of the bucket.
         A request by any other application will result in a response of 403 Forbidden.
@@ -169,7 +188,7 @@ class OSSClient(BaseOAuthClient):
         &#34;&#34;&#34;
         return self._get(&#39;/buckets/{}/details&#39;.format(quote(bucket_key)), READ_SCOPES).json()
 
-    def create_bucket(self, bucket_key, data_retention_policy, region):
+    def create_bucket(self, bucket_key: str, data_retention_policy: DataRetention, region: str) -&gt; dict:
         &#34;&#34;&#34;
         Create a bucket. Buckets are arbitrary spaces that are created by applications
         and are used to store objects for later retrieval. A bucket is owned by the application
@@ -206,7 +225,7 @@ class OSSClient(BaseOAuthClient):
         }
         return self._post(&#39;/buckets&#39;, WRITE_SCOPES, json=json, headers=headers).json()
 
-    def delete_bucket(self, bucket_key):
+    def delete_bucket(self, bucket_key: str):
         &#34;&#34;&#34;
         Delete a bucket. The bucket must be owned by the application.
 
@@ -215,9 +234,9 @@ class OSSClient(BaseOAuthClient):
         Args:
             bucket_key (str): Name of the bucket to be deleted.
         &#34;&#34;&#34;
-        return self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)
+        self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)
 
-    def get_objects(self, bucket_key, limit=None, begins_with=None, start_at=None):
+    def get_objects(self, bucket_key: str, limit: int=None, begins_with: str=None, start_at: str=None) -&gt; dict:
         &#34;&#34;&#34;
         List objects in bucket, using pagination. It is only available to the bucket creator.
 
@@ -252,7 +271,7 @@ class OSSClient(BaseOAuthClient):
             params[&#39;startAt&#39;] = start_at
         return self._get(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params).json()
 
-    def get_all_objects(self, bucket_key, begins_with=None):
+    def get_all_objects(self, bucket_key: str, begins_with: str=None) -&gt; list:
         &#34;&#34;&#34;
         List all objects in bucket. Similar to `OSSClient.get_objects` but returning all results without pagination.
 
@@ -277,7 +296,7 @@ class OSSClient(BaseOAuthClient):
             params[&#39;beginsWith&#39;] = begins_with
         return self._get_paginated(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params)
 
-    def get_object_details(self, bucket_key, object_key):
+    def get_object_details(self, bucket_key: str, object_key: str) -&gt; dict:
         &#34;&#34;&#34;
         Get object details in JSON format.
 
@@ -303,7 +322,7 @@ class OSSClient(BaseOAuthClient):
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._get(url, READ_SCOPES).json()
 
-    def upload_object(self, bucket_key, object_key, buff):
+    def upload_object(self, bucket_key: str, object_key: str, buff) -&gt; list:
         &#34;&#34;&#34;
         Upload an object. If the specified object name already exists in the bucket,
         the uploaded content will overwrite the existing content for the bucket name/object name combination.
@@ -335,7 +354,7 @@ class OSSClient(BaseOAuthClient):
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._put(url, WRITE_SCOPES, buff=buff).json()
 
-    def delete_object(self, bucket_key, object_key):
+    def delete_object(self, bucket_key: str, object_key: str):
         &#34;&#34;&#34;
         Delete an object from bucket.
 
@@ -346,7 +365,7 @@ class OSSClient(BaseOAuthClient):
             object_key (str): Name of the object to be removed.
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
-        return self._delete(url, DELETE_SCOPES)</code></pre>
+        self._delete(url, DELETE_SCOPES)</code></pre>
 </details>
 </section>
 <section>
@@ -421,7 +440,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient"><code class="flex name class">
 <span>class <span class="ident">OSSClient</span></span>
-<span>(</span><span>token_provider, base_url='https://developer.api.autodesk.com/oss/v2')</span>
+<span>(</span><span>token_provider: <<a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a> object at 0x7fdd8817f2e0>, base_url: str = 'https://developer.api.autodesk.com/oss/v2')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Forge Data Management object storage client.</p>
@@ -429,11 +448,29 @@ if the same rendering is uploaded multiple times, each of them will have its own
 <p>Create new instance of the client.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>token_provider</code></strong> :&ensp;<code>TokenProviderInterface</code></dt>
-<dd>Provider that will be used to generate access tokens for API calls.</dd>
+<dt><strong><code>token_provider</code></strong> :&ensp;<code><a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a></code></dt>
+<dd>
+<p>Provider that will be used to generate access tokens for API calls.</p>
+<p>Use <code><a title="autodesk_forge_sdk.auth.OAuthTokenProvider" href="auth.html#autodesk_forge_sdk.auth.OAuthTokenProvider">OAuthTokenProvider</a></code> if you have your app's client ID and client secret available,
+<code><a title="autodesk_forge_sdk.auth.SimpleTokenProvider" href="auth.html#autodesk_forge_sdk.auth.SimpleTokenProvider">SimpleTokenProvider</a></code> if you would like to use an existing access token instead,
+or even your own implementation of the <code><a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a></code> interface.</p>
+</dd>
 <dt><strong><code>base_url</code></strong> :&ensp;<code>str</code>, optional</dt>
 <dd>Base URL for API calls.</dd>
-</dl></div>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+client1 = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+
+FORGE_ACCESS_TOKEN = os.environ[&quot;FORGE_ACCESS_TOKEN&quot;]
+client2 = OSSClient(SimpleTokenProvider(FORGE_ACCESS_TOKEN))
+
+class MyTokenProvider(autodesk_forge_sdk.auth.TokenProviderInterface):
+    def get_token(self, scopes):
+        return &quot;your own access token retrieved from wherever&quot;
+client3 = OSSClient(MyTokenProvider())
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -445,17 +482,36 @@ if the same rendering is uploaded multiple times, each of them will have its own
     **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, token_provider, base_url=BASE_URL):
+    def __init__(self, token_provider: TokenProviderInterface(), base_url: str = BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
         Args:
-            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            token_provider (autodesk_forge_sdk.auth.TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+
+                Use `autodesk_forge_sdk.auth.OAuthTokenProvider` if you have your app&#39;s client ID and client secret available,
+                `autodesk_forge_sdk.auth.SimpleTokenProvider` if you would like to use an existing access token instead,
+                or even your own implementation of the `autodesk_forge_sdk.auth.TokenProviderInterface` interface.
             base_url (str, optional): Base URL for API calls.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            client1 = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+
+            FORGE_ACCESS_TOKEN = os.environ[&#34;FORGE_ACCESS_TOKEN&#34;]
+            client2 = OSSClient(SimpleTokenProvider(FORGE_ACCESS_TOKEN))
+
+            class MyTokenProvider(autodesk_forge_sdk.auth.TokenProviderInterface):
+                def get_token(self, scopes):
+                    return &#34;your own access token retrieved from wherever&#34;
+            client3 = OSSClient(MyTokenProvider())
+            ```
         &#34;&#34;&#34;
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
-    def _get_paginated(self, url, scopes, params=None, headers=None):
+    def _get_paginated(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None) -&gt; list:
         items = []
         while url:
             json = self._get(url, scopes, params, headers).json()
@@ -466,7 +522,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
                 url = None
         return items
 
-    def get_buckets(self, region=None, limit=None, start_at=None):
+    def get_buckets(self, region: str=None, limit: int=None, start_at: str=None) -&gt; dict:
         &#34;&#34;&#34;
         List buckets owned by the application, using pagination.
 
@@ -499,7 +555,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
             params[&#39;startAt&#39;] = start_at
         return self._get(&#39;/buckets&#39;, READ_SCOPES, params).json()
 
-    def get_all_buckets(self, region=None):
+    def get_all_buckets(self, region: str=None) -&gt; list:
         &#34;&#34;&#34;
         List all buckets owned by the application. Similar to `OSSClient.get_buckets` but returning all results without pagination.
 
@@ -525,7 +581,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
             params[&#39;region&#39;] = region
         return self._get_paginated(&#39;/buckets&#39;, READ_SCOPES, params)
 
-    def get_bucket_details(self, bucket_key):
+    def get_bucket_details(self, bucket_key: str) -&gt; dict:
         &#34;&#34;&#34;
         Get bucket details in JSON format if the caller is the owner of the bucket.
         A request by any other application will result in a response of 403 Forbidden.
@@ -547,7 +603,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
         &#34;&#34;&#34;
         return self._get(&#39;/buckets/{}/details&#39;.format(quote(bucket_key)), READ_SCOPES).json()
 
-    def create_bucket(self, bucket_key, data_retention_policy, region):
+    def create_bucket(self, bucket_key: str, data_retention_policy: DataRetention, region: str) -&gt; dict:
         &#34;&#34;&#34;
         Create a bucket. Buckets are arbitrary spaces that are created by applications
         and are used to store objects for later retrieval. A bucket is owned by the application
@@ -584,7 +640,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
         }
         return self._post(&#39;/buckets&#39;, WRITE_SCOPES, json=json, headers=headers).json()
 
-    def delete_bucket(self, bucket_key):
+    def delete_bucket(self, bucket_key: str):
         &#34;&#34;&#34;
         Delete a bucket. The bucket must be owned by the application.
 
@@ -593,9 +649,9 @@ if the same rendering is uploaded multiple times, each of them will have its own
         Args:
             bucket_key (str): Name of the bucket to be deleted.
         &#34;&#34;&#34;
-        return self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)
+        self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)
 
-    def get_objects(self, bucket_key, limit=None, begins_with=None, start_at=None):
+    def get_objects(self, bucket_key: str, limit: int=None, begins_with: str=None, start_at: str=None) -&gt; dict:
         &#34;&#34;&#34;
         List objects in bucket, using pagination. It is only available to the bucket creator.
 
@@ -630,7 +686,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
             params[&#39;startAt&#39;] = start_at
         return self._get(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params).json()
 
-    def get_all_objects(self, bucket_key, begins_with=None):
+    def get_all_objects(self, bucket_key: str, begins_with: str=None) -&gt; list:
         &#34;&#34;&#34;
         List all objects in bucket. Similar to `OSSClient.get_objects` but returning all results without pagination.
 
@@ -655,7 +711,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
             params[&#39;beginsWith&#39;] = begins_with
         return self._get_paginated(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params)
 
-    def get_object_details(self, bucket_key, object_key):
+    def get_object_details(self, bucket_key: str, object_key: str) -&gt; dict:
         &#34;&#34;&#34;
         Get object details in JSON format.
 
@@ -681,7 +737,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._get(url, READ_SCOPES).json()
 
-    def upload_object(self, bucket_key, object_key, buff):
+    def upload_object(self, bucket_key: str, object_key: str, buff) -&gt; list:
         &#34;&#34;&#34;
         Upload an object. If the specified object name already exists in the bucket,
         the uploaded content will overwrite the existing content for the bucket name/object name combination.
@@ -713,7 +769,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._put(url, WRITE_SCOPES, buff=buff).json()
 
-    def delete_object(self, bucket_key, object_key):
+    def delete_object(self, bucket_key: str, object_key: str):
         &#34;&#34;&#34;
         Delete an object from bucket.
 
@@ -724,7 +780,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
             object_key (str): Name of the object to be removed.
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
-        return self._delete(url, DELETE_SCOPES)</code></pre>
+        self._delete(url, DELETE_SCOPES)</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -734,7 +790,7 @@ if the same rendering is uploaded multiple times, each of them will have its own
 <h3>Methods</h3>
 <dl>
 <dt id="autodesk_forge_sdk.oss.OSSClient.create_bucket"><code class="name flex">
-<span>def <span class="ident">create_bucket</span></span>(<span>self, bucket_key, data_retention_policy, region)</span>
+<span>def <span class="ident">create_bucket</span></span>(<span>self, bucket_key: str, data_retention_policy: <a title="autodesk_forge_sdk.oss.DataRetention" href="#autodesk_forge_sdk.oss.DataRetention">DataRetention</a>, region: str) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Create a bucket. Buckets are arbitrary spaces that are created by applications
@@ -769,7 +825,7 @@ print(details)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_bucket(self, bucket_key, data_retention_policy, region):
+<pre><code class="python">def create_bucket(self, bucket_key: str, data_retention_policy: DataRetention, region: str) -&gt; dict:
     &#34;&#34;&#34;
     Create a bucket. Buckets are arbitrary spaces that are created by applications
     and are used to store objects for later retrieval. A bucket is owned by the application
@@ -808,7 +864,7 @@ print(details)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.delete_bucket"><code class="name flex">
-<span>def <span class="ident">delete_bucket</span></span>(<span>self, bucket_key)</span>
+<span>def <span class="ident">delete_bucket</span></span>(<span>self, bucket_key: str)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Delete a bucket. The bucket must be owned by the application.</p>
@@ -822,7 +878,7 @@ print(details)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def delete_bucket(self, bucket_key):
+<pre><code class="python">def delete_bucket(self, bucket_key: str):
     &#34;&#34;&#34;
     Delete a bucket. The bucket must be owned by the application.
 
@@ -831,11 +887,11 @@ print(details)
     Args:
         bucket_key (str): Name of the bucket to be deleted.
     &#34;&#34;&#34;
-    return self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)</code></pre>
+    self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)</code></pre>
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.delete_object"><code class="name flex">
-<span>def <span class="ident">delete_object</span></span>(<span>self, bucket_key, object_key)</span>
+<span>def <span class="ident">delete_object</span></span>(<span>self, bucket_key: str, object_key: str)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Delete an object from bucket.</p>
@@ -851,7 +907,7 @@ print(details)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def delete_object(self, bucket_key, object_key):
+<pre><code class="python">def delete_object(self, bucket_key: str, object_key: str):
     &#34;&#34;&#34;
     Delete an object from bucket.
 
@@ -862,11 +918,11 @@ print(details)
         object_key (str): Name of the object to be removed.
     &#34;&#34;&#34;
     url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
-    return self._delete(url, DELETE_SCOPES)</code></pre>
+    self._delete(url, DELETE_SCOPES)</code></pre>
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.get_all_buckets"><code class="name flex">
-<span>def <span class="ident">get_all_buckets</span></span>(<span>self, region=None)</span>
+<span>def <span class="ident">get_all_buckets</span></span>(<span>self, region: str = None) ‑> list</span>
 </code></dt>
 <dd>
 <div class="desc"><p>List all buckets owned by the application. Similar to <code><a title="autodesk_forge_sdk.oss.OSSClient.get_buckets" href="#autodesk_forge_sdk.oss.OSSClient.get_buckets">OSSClient.get_buckets()</a></code> but returning all results without pagination.</p>
@@ -892,7 +948,7 @@ print(buckets)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_all_buckets(self, region=None):
+<pre><code class="python">def get_all_buckets(self, region: str=None) -&gt; list:
     &#34;&#34;&#34;
     List all buckets owned by the application. Similar to `OSSClient.get_buckets` but returning all results without pagination.
 
@@ -920,7 +976,7 @@ print(buckets)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.get_all_objects"><code class="name flex">
-<span>def <span class="ident">get_all_objects</span></span>(<span>self, bucket_key, begins_with=None)</span>
+<span>def <span class="ident">get_all_objects</span></span>(<span>self, bucket_key: str, begins_with: str = None) ‑> list</span>
 </code></dt>
 <dd>
 <div class="desc"><p>List all objects in bucket. Similar to <code><a title="autodesk_forge_sdk.oss.OSSClient.get_objects" href="#autodesk_forge_sdk.oss.OSSClient.get_objects">OSSClient.get_objects()</a></code> but returning all results without pagination.</p>
@@ -946,7 +1002,7 @@ print(objects)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_all_objects(self, bucket_key, begins_with=None):
+<pre><code class="python">def get_all_objects(self, bucket_key: str, begins_with: str=None) -&gt; list:
     &#34;&#34;&#34;
     List all objects in bucket. Similar to `OSSClient.get_objects` but returning all results without pagination.
 
@@ -973,7 +1029,7 @@ print(objects)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.get_bucket_details"><code class="name flex">
-<span>def <span class="ident">get_bucket_details</span></span>(<span>self, bucket_key)</span>
+<span>def <span class="ident">get_bucket_details</span></span>(<span>self, bucket_key: str) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Get bucket details in JSON format if the caller is the owner of the bucket.
@@ -996,7 +1052,7 @@ print(details)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_bucket_details(self, bucket_key):
+<pre><code class="python">def get_bucket_details(self, bucket_key: str) -&gt; dict:
     &#34;&#34;&#34;
     Get bucket details in JSON format if the caller is the owner of the bucket.
     A request by any other application will result in a response of 403 Forbidden.
@@ -1020,7 +1076,7 @@ print(details)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.get_buckets"><code class="name flex">
-<span>def <span class="ident">get_buckets</span></span>(<span>self, region=None, limit=None, start_at=None)</span>
+<span>def <span class="ident">get_buckets</span></span>(<span>self, region: str = None, limit: int = None, start_at: str = None) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>List buckets owned by the application, using pagination.</p>
@@ -1051,7 +1107,7 @@ print(buckets.next)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_buckets(self, region=None, limit=None, start_at=None):
+<pre><code class="python">def get_buckets(self, region: str=None, limit: int=None, start_at: str=None) -&gt; dict:
     &#34;&#34;&#34;
     List buckets owned by the application, using pagination.
 
@@ -1086,7 +1142,7 @@ print(buckets.next)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.get_object_details"><code class="name flex">
-<span>def <span class="ident">get_object_details</span></span>(<span>self, bucket_key, object_key)</span>
+<span>def <span class="ident">get_object_details</span></span>(<span>self, bucket_key: str, object_key: str) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Get object details in JSON format.</p>
@@ -1115,7 +1171,7 @@ print(details)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_object_details(self, bucket_key, object_key):
+<pre><code class="python">def get_object_details(self, bucket_key: str, object_key: str) -&gt; dict:
     &#34;&#34;&#34;
     Get object details in JSON format.
 
@@ -1143,7 +1199,7 @@ print(details)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.get_objects"><code class="name flex">
-<span>def <span class="ident">get_objects</span></span>(<span>self, bucket_key, limit=None, begins_with=None, start_at=None)</span>
+<span>def <span class="ident">get_objects</span></span>(<span>self, bucket_key: str, limit: int = None, begins_with: str = None, start_at: str = None) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>List objects in bucket, using pagination. It is only available to the bucket creator.</p>
@@ -1177,7 +1233,7 @@ print(objects.next)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_objects(self, bucket_key, limit=None, begins_with=None, start_at=None):
+<pre><code class="python">def get_objects(self, bucket_key: str, limit: int=None, begins_with: str=None, start_at: str=None) -&gt; dict:
     &#34;&#34;&#34;
     List objects in bucket, using pagination. It is only available to the bucket creator.
 
@@ -1214,7 +1270,7 @@ print(objects.next)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient.upload_object"><code class="name flex">
-<span>def <span class="ident">upload_object</span></span>(<span>self, bucket_key, object_key, buff)</span>
+<span>def <span class="ident">upload_object</span></span>(<span>self, bucket_key: str, object_key: str, buff) ‑> list</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Upload an object. If the specified object name already exists in the bucket,
@@ -1250,7 +1306,7 @@ with open(&quot;local.dwg&quot;, &quot;rb&quot;) as file:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def upload_object(self, bucket_key, object_key, buff):
+<pre><code class="python">def upload_object(self, bucket_key: str, object_key: str, buff) -&gt; list:
     &#34;&#34;&#34;
     Upload an object. If the specified object name already exists in the bucket,
     the uploaded content will overwrite the existing content for the bucket name/object name combination.

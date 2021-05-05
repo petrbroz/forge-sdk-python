@@ -76,7 +76,7 @@ class AuthenticationClient(BaseClient):
     **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, base_url=BASE_URL):
+    def __init__(self, base_url: str=BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -85,7 +85,7 @@ class AuthenticationClient(BaseClient):
         &#34;&#34;&#34;
         BaseClient.__init__(self, base_url)
 
-    def authenticate(self, client_id, client_secret, scopes):
+    def authenticate(self, client_id: str, client_secret: str, scopes: list[Scope]) -&gt; dict:
         &#34;&#34;&#34;
         Generate a two-legged access token for specific set of scopes.
 
@@ -116,7 +116,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post(&#39;/authenticate&#39;, form=form).json()
 
-    def get_authorization_url(self, client_id, response_type, redirect_uri, scopes, state=None):
+    def get_authorization_url(self, client_id: str, response_type: str, redirect_uri: str, scopes: list[Scope], state: str=None) -&gt; str:
         &#34;&#34;&#34;
         Generate a URL to redirect an end user to in order to acquire the user’s consent
         for your app to access the specified resources.
@@ -150,7 +150,7 @@ class AuthenticationClient(BaseClient):
             url += &#39;&amp;state={}&#39;.format(quote(state))
         return url
 
-    def get_token(self, client_id, client_secret, code, redirect_uri):
+    def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -&gt; dict:
         &#34;&#34;&#34;
         Exchange an authorization code extracted from `get_authorization_url` callback for a three-legged access token.
         This API will only be used when the &#39;Authorization Code&#39; grant type is being adopted.
@@ -187,7 +187,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post(&#39;/gettoken&#39;, form=form).json()
 
-    def refresh_token(self, client_id, client_secret, refresh_token, scopes):
+    def refresh_token(self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
         &#34;&#34;&#34;
         Acquire a new access token by using the refresh token provided by `get_token`.
 
@@ -221,7 +221,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post(&#39;/refreshtoken&#39;, form=form).json()
 
-    def get_user_profile(self, access_token):
+    def get_user_profile(self, access_token: str) -&gt; dict:
         &#34;&#34;&#34;
         Get the profile information of an authorizing end user in a three-legged context.
 
@@ -245,7 +245,7 @@ class AuthenticationClient(BaseClient):
         return self._get(&#39;/users/@me&#39;, headers=headers).json()
 
 class TokenProviderInterface:
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -&gt; str:
         &#34;&#34;&#34;
         Generates access token for given set of scopes.
 
@@ -263,7 +263,7 @@ class SimpleTokenProvider(TokenProviderInterface):
     When using this approach, make sure that the hard-coded access token supports all the scopes that may be needed.
     &#34;&#34;&#34;
 
-    def __init__(self, access_token):
+    def __init__(self, access_token: str):
         &#34;&#34;&#34;
         Create new instance of the provider.
 
@@ -272,7 +272,7 @@ class SimpleTokenProvider(TokenProviderInterface):
         &#34;&#34;&#34;
         self.access_token = access_token
 
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -&gt; str:
         return self.access_token
 
 class OAuthTokenProvider(TokenProviderInterface):
@@ -280,7 +280,7 @@ class OAuthTokenProvider(TokenProviderInterface):
     Helper class that automatically generates (and caches) access tokens using specific app credentials.
     &#34;&#34;&#34;
 
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id: str, client_secret: str):
         &#34;&#34;&#34;
         Create new instance of the provider.
 
@@ -293,7 +293,7 @@ class OAuthTokenProvider(TokenProviderInterface):
         self.auth_client = AuthenticationClient()
         self.cache = {}
 
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -&gt; str:
         cache_key = &#39;+&#39;.join(map(lambda s: s.value, scopes))
         now = datetime.now()
         if cache_key in self.cache:
@@ -305,7 +305,7 @@ class OAuthTokenProvider(TokenProviderInterface):
         return auth
 
 class BaseOAuthClient(BaseClient):
-    def __init__(self, token_provider, base_url):
+    def __init__(self, token_provider: TokenProviderInterface, base_url: str):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -316,31 +316,31 @@ class BaseOAuthClient(BaseClient):
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
-    def _get(self, url, scopes, params=None, headers=None):
+    def _get(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._get(self, url, params, headers)
 
-    def _post(self, url, scopes, form=None, json=None, buff=None, params=None, headers=None):
+    def _post(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._post(self, url, form, json, buff, params, headers)
 
-    def _put(self, url, scopes, form=None, json=None, buff=None, params=None, headers=None):
+    def _put(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._put(self, url, form, json, buff, params, headers)
 
-    def _delete(self, url, scopes, params=None, headers=None):
+    def _delete(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._delete(self, url, params, headers)
 
-    def _set_auth_headers(self, headers, scopes):
+    def _set_auth_headers(self, headers: dict, scopes: list[Scope]):
         if not &#39;Authorization&#39; in headers:
             auth = self.token_provider.get_token(scopes)
             headers[&#39;Authorization&#39;] = &#39;Bearer {}&#39;.format(auth[&#39;access_token&#39;])</code></pre>
@@ -357,7 +357,7 @@ class BaseOAuthClient(BaseClient):
 <dl>
 <dt id="autodesk_forge_sdk.auth.AuthenticationClient"><code class="flex name class">
 <span>class <span class="ident">AuthenticationClient</span></span>
-<span>(</span><span>base_url='https://developer.api.autodesk.com/authentication/v1')</span>
+<span>(</span><span>base_url: str = 'https://developer.api.autodesk.com/authentication/v1')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Forge Authentication service client.</p>
@@ -379,7 +379,7 @@ class BaseOAuthClient(BaseClient):
     **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, base_url=BASE_URL):
+    def __init__(self, base_url: str=BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -388,7 +388,7 @@ class BaseOAuthClient(BaseClient):
         &#34;&#34;&#34;
         BaseClient.__init__(self, base_url)
 
-    def authenticate(self, client_id, client_secret, scopes):
+    def authenticate(self, client_id: str, client_secret: str, scopes: list[Scope]) -&gt; dict:
         &#34;&#34;&#34;
         Generate a two-legged access token for specific set of scopes.
 
@@ -419,7 +419,7 @@ class BaseOAuthClient(BaseClient):
         }
         return self._post(&#39;/authenticate&#39;, form=form).json()
 
-    def get_authorization_url(self, client_id, response_type, redirect_uri, scopes, state=None):
+    def get_authorization_url(self, client_id: str, response_type: str, redirect_uri: str, scopes: list[Scope], state: str=None) -&gt; str:
         &#34;&#34;&#34;
         Generate a URL to redirect an end user to in order to acquire the user’s consent
         for your app to access the specified resources.
@@ -453,7 +453,7 @@ class BaseOAuthClient(BaseClient):
             url += &#39;&amp;state={}&#39;.format(quote(state))
         return url
 
-    def get_token(self, client_id, client_secret, code, redirect_uri):
+    def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -&gt; dict:
         &#34;&#34;&#34;
         Exchange an authorization code extracted from `get_authorization_url` callback for a three-legged access token.
         This API will only be used when the &#39;Authorization Code&#39; grant type is being adopted.
@@ -490,7 +490,7 @@ class BaseOAuthClient(BaseClient):
         }
         return self._post(&#39;/gettoken&#39;, form=form).json()
 
-    def refresh_token(self, client_id, client_secret, refresh_token, scopes):
+    def refresh_token(self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
         &#34;&#34;&#34;
         Acquire a new access token by using the refresh token provided by `get_token`.
 
@@ -524,7 +524,7 @@ class BaseOAuthClient(BaseClient):
         }
         return self._post(&#39;/refreshtoken&#39;, form=form).json()
 
-    def get_user_profile(self, access_token):
+    def get_user_profile(self, access_token: str) -&gt; dict:
         &#34;&#34;&#34;
         Get the profile information of an authorizing end user in a three-legged context.
 
@@ -554,7 +554,7 @@ class BaseOAuthClient(BaseClient):
 <h3>Methods</h3>
 <dl>
 <dt id="autodesk_forge_sdk.auth.AuthenticationClient.authenticate"><code class="name flex">
-<span>def <span class="ident">authenticate</span></span>(<span>self, client_id, client_secret, scopes)</span>
+<span>def <span class="ident">authenticate</span></span>(<span>self, client_id: str, client_secret: str, scopes: list) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Generate a two-legged access token for specific set of scopes.</p>
@@ -584,7 +584,7 @@ print(auth[&quot;access_token&quot;])
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def authenticate(self, client_id, client_secret, scopes):
+<pre><code class="python">def authenticate(self, client_id: str, client_secret: str, scopes: list[Scope]) -&gt; dict:
     &#34;&#34;&#34;
     Generate a two-legged access token for specific set of scopes.
 
@@ -617,7 +617,7 @@ print(auth[&quot;access_token&quot;])
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.auth.AuthenticationClient.get_authorization_url"><code class="name flex">
-<span>def <span class="ident">get_authorization_url</span></span>(<span>self, client_id, response_type, redirect_uri, scopes, state=None)</span>
+<span>def <span class="ident">get_authorization_url</span></span>(<span>self, client_id: str, response_type: str, redirect_uri: str, scopes: list, state: str = None) ‑> str</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Generate a URL to redirect an end user to in order to acquire the user’s consent
@@ -651,7 +651,7 @@ print(url)
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_authorization_url(self, client_id, response_type, redirect_uri, scopes, state=None):
+<pre><code class="python">def get_authorization_url(self, client_id: str, response_type: str, redirect_uri: str, scopes: list[Scope], state: str=None) -&gt; str:
     &#34;&#34;&#34;
     Generate a URL to redirect an end user to in order to acquire the user’s consent
     for your app to access the specified resources.
@@ -687,7 +687,7 @@ print(url)
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.auth.AuthenticationClient.get_token"><code class="name flex">
-<span>def <span class="ident">get_token</span></span>(<span>self, client_id, client_secret, code, redirect_uri)</span>
+<span>def <span class="ident">get_token</span></span>(<span>self, client_id: str, client_secret: str, code: str, redirect_uri: str) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Exchange an authorization code extracted from <code>get_authorization_url</code> callback for a three-legged access token.
@@ -723,7 +723,7 @@ print(auth[&quot;access_token&quot;])
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_token(self, client_id, client_secret, code, redirect_uri):
+<pre><code class="python">def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -&gt; dict:
     &#34;&#34;&#34;
     Exchange an authorization code extracted from `get_authorization_url` callback for a three-legged access token.
     This API will only be used when the &#39;Authorization Code&#39; grant type is being adopted.
@@ -762,7 +762,7 @@ print(auth[&quot;access_token&quot;])
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.auth.AuthenticationClient.get_user_profile"><code class="name flex">
-<span>def <span class="ident">get_user_profile</span></span>(<span>self, access_token)</span>
+<span>def <span class="ident">get_user_profile</span></span>(<span>self, access_token: str) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Get the profile information of an authorizing end user in a three-legged context.</p>
@@ -787,7 +787,7 @@ print(auth[&quot;userName&quot;])
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_user_profile(self, access_token):
+<pre><code class="python">def get_user_profile(self, access_token: str) -&gt; dict:
     &#34;&#34;&#34;
     Get the profile information of an authorizing end user in a three-legged context.
 
@@ -812,7 +812,7 @@ print(auth[&quot;userName&quot;])
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.auth.AuthenticationClient.refresh_token"><code class="name flex">
-<span>def <span class="ident">refresh_token</span></span>(<span>self, client_id, client_secret, refresh_token, scopes)</span>
+<span>def <span class="ident">refresh_token</span></span>(<span>self, client_id: str, client_secret: str, refresh_token: str, scopes: list) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Acquire a new access token by using the refresh token provided by <code>get_token</code>.</p>
@@ -845,7 +845,7 @@ print(auth[&quot;access_token&quot;])
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def refresh_token(self, client_id, client_secret, refresh_token, scopes):
+<pre><code class="python">def refresh_token(self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
     &#34;&#34;&#34;
     Acquire a new access token by using the refresh token provided by `get_token`.
 
@@ -884,7 +884,7 @@ print(auth[&quot;access_token&quot;])
 </dd>
 <dt id="autodesk_forge_sdk.auth.BaseOAuthClient"><code class="flex name class">
 <span>class <span class="ident">BaseOAuthClient</span></span>
-<span>(</span><span>token_provider, base_url)</span>
+<span>(</span><span>token_provider: <a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a>, base_url: str)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Create new instance of the client.</p>
@@ -900,7 +900,7 @@ print(auth[&quot;access_token&quot;])
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class BaseOAuthClient(BaseClient):
-    def __init__(self, token_provider, base_url):
+    def __init__(self, token_provider: TokenProviderInterface, base_url: str):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -911,31 +911,31 @@ print(auth[&quot;access_token&quot;])
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
-    def _get(self, url, scopes, params=None, headers=None):
+    def _get(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._get(self, url, params, headers)
 
-    def _post(self, url, scopes, form=None, json=None, buff=None, params=None, headers=None):
+    def _post(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._post(self, url, form, json, buff, params, headers)
 
-    def _put(self, url, scopes, form=None, json=None, buff=None, params=None, headers=None):
+    def _put(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._put(self, url, form, json, buff, params, headers)
 
-    def _delete(self, url, scopes, params=None, headers=None):
+    def _delete(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
         if not headers:
             headers = {}
         self._set_auth_headers(headers, scopes)
         return BaseClient._delete(self, url, params, headers)
 
-    def _set_auth_headers(self, headers, scopes):
+    def _set_auth_headers(self, headers: dict, scopes: list[Scope]):
         if not &#39;Authorization&#39; in headers:
             auth = self.token_provider.get_token(scopes)
             headers[&#39;Authorization&#39;] = &#39;Bearer {}&#39;.format(auth[&#39;access_token&#39;])</code></pre>
@@ -952,7 +952,7 @@ print(auth[&quot;access_token&quot;])
 </dd>
 <dt id="autodesk_forge_sdk.auth.OAuthTokenProvider"><code class="flex name class">
 <span>class <span class="ident">OAuthTokenProvider</span></span>
-<span>(</span><span>client_id, client_secret)</span>
+<span>(</span><span>client_id: str, client_secret: str)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Helper class that automatically generates (and caches) access tokens using specific app credentials.</p>
@@ -973,7 +973,7 @@ print(auth[&quot;access_token&quot;])
     Helper class that automatically generates (and caches) access tokens using specific app credentials.
     &#34;&#34;&#34;
 
-    def __init__(self, client_id, client_secret):
+    def __init__(self, client_id: str, client_secret: str):
         &#34;&#34;&#34;
         Create new instance of the provider.
 
@@ -986,7 +986,7 @@ print(auth[&quot;access_token&quot;])
         self.auth_client = AuthenticationClient()
         self.cache = {}
 
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -&gt; str:
         cache_key = &#39;+&#39;.join(map(lambda s: s.value, scopes))
         now = datetime.now()
         if cache_key in self.cache:
@@ -1125,7 +1125,7 @@ print(auth[&quot;access_token&quot;])
 </dd>
 <dt id="autodesk_forge_sdk.auth.SimpleTokenProvider"><code class="flex name class">
 <span>class <span class="ident">SimpleTokenProvider</span></span>
-<span>(</span><span>access_token)</span>
+<span>(</span><span>access_token: str)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Simple implementation of <code><a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a></code> when you already have an access token that you want to use.
@@ -1146,7 +1146,7 @@ When using this approach, make sure that the hard-coded access token supports al
     When using this approach, make sure that the hard-coded access token supports all the scopes that may be needed.
     &#34;&#34;&#34;
 
-    def __init__(self, access_token):
+    def __init__(self, access_token: str):
         &#34;&#34;&#34;
         Create new instance of the provider.
 
@@ -1155,7 +1155,7 @@ When using this approach, make sure that the hard-coded access token supports al
         &#34;&#34;&#34;
         self.access_token = access_token
 
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -&gt; str:
         return self.access_token</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -1181,7 +1181,7 @@ When using this approach, make sure that the hard-coded access token supports al
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class TokenProviderInterface:
-    def get_token(self, scopes):
+    def get_token(self, scopes: list[Scope]) -&gt; str:
         &#34;&#34;&#34;
         Generates access token for given set of scopes.
 
@@ -1201,7 +1201,7 @@ When using this approach, make sure that the hard-coded access token supports al
 <h3>Methods</h3>
 <dl>
 <dt id="autodesk_forge_sdk.auth.TokenProviderInterface.get_token"><code class="name flex">
-<span>def <span class="ident">get_token</span></span>(<span>self, scopes)</span>
+<span>def <span class="ident">get_token</span></span>(<span>self, scopes: list) ‑> str</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Generates access token for given set of scopes.</p>
@@ -1219,7 +1219,7 @@ When using this approach, make sure that the hard-coded access token supports al
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_token(self, scopes):
+<pre><code class="python">def get_token(self, scopes: list[Scope]) -&gt; str:
     &#34;&#34;&#34;
     Generates access token for given set of scopes.
 
