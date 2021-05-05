@@ -18,3 +18,6 @@ prepublish-check: build
 
 publish: build
 	python3 -m twine upload dist/*
+
+clean:
+	rm -rf build dist docs
