@@ -14,10 +14,10 @@ pip3 install autodesk-forge-sdk
 
 ```python
 import os
-from autodesk_forge_sdk import AuthenticationClient
+from autodesk_forge_sdk import AuthenticationClient, Scope
 
 client = AuthenticationClient()
-auth = client.authenticate(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"], ["viewables:read"])
+auth = client.authenticate(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"], [Scope.ViewablesRead])
 print(auth["access_token"])
 ```
 
@@ -25,9 +25,9 @@ print(auth["access_token"])
 
 ```python
 import os
-from autodesk_forge_sdk import OSSClient, ActiveTokenProvider
+from autodesk_forge_sdk import OSSClient, OAuthTokenProvider
 
-client = OSSClient(ActiveTokenProvider(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"]))
+client = OSSClient(OAuthTokenProvider(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"]))
 buckets = client.get_all_buckets()
 print(buckets)
 ```
@@ -36,9 +36,9 @@ Or, if you already have an access token:
 
 ```python
 import os
-from autodesk_forge_sdk import OSSClient, PassiveTokenProvider
+from autodesk_forge_sdk import OSSClient, SimpleTokenProvider
 
-client = OSSClient(PassiveTokenProvider(os.environ["FORGE_ACCESS_TOKEN"]))
+client = OSSClient(SimpleTokenProvider(os.environ["FORGE_ACCESS_TOKEN"]))
 buckets = client.get_all_buckets()
 print(buckets)
 ```

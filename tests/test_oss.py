@@ -1,11 +1,11 @@
 import unittest
-from .context import OSSClient, ActiveTokenProvider, FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_BUCKET
+from .context import OSSClient, OAuthTokenProvider, FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_BUCKET
 
 class OSSClientTestSuite(unittest.TestCase):
     """Forge Data Management OSS client test cases."""
 
     def setUp(self):
-        self.client = OSSClient(ActiveTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        self.client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
 
     def test_get_buckets(self):
         page = self.client.get_buckets(limit=2)

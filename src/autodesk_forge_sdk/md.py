@@ -1,44 +1,86 @@
 import base64
 from urllib.parse import quote
-from .auth import BaseOAuthClient
+from .auth import BaseOAuthClient, Scope
 
 BASE_URL = 'https://developer.api.autodesk.com/modelderivative/v2'
-WRITE_SCOPES = ['data:create', 'data:write', 'data:read']
+WRITE_SCOPES = [Scope.DataCreate, Scope.DataWrite, Scope.DataRead]
 
-def urnify(str):
-    """Converts input string into base64-encoded string (without padding '=' characters)
-    that can be used as Model Derivative service URN.
+def urnify(text):
     """
-    base64_bytes = base64.b64encode(str.encode('ascii'))
+    Convert input string into base64-encoded string (without padding '=' characters) that can be used as Model Derivative service URN.
+
+    Args:
+        text (str): Input text.
+
+    Returns:
+        str: Base64-encoded string.
+
+    Examples:
+        ```
+        text = "Hello World"
+        encoded = urnify(text)
+        print(encoded)
+        ```
+    """
+    base64_bytes = base64.b64encode(text.encode('ascii'))
     ascii_output = base64_bytes.decode('ascii')
     return ascii_output.rstrip('=')
 
 class ModelDerivativeClient(BaseOAuthClient):
+    """
+    Forge Model Derivative service client.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http
+    """
     def __init__(self, token_provider, base_url=BASE_URL):
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
     def get_formats(self):
-        """Returns an up-to-date list of Forge-supported translations, that you can use to identify
+        """
+        Return an up-to-date list of Forge-supported translations, that you can use to identify
         which types of derivatives are supported for each source file type.
 
+        **Documentation**: https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http
+
         Returns:
-        object: Parsed response object. For more information, see https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http/formats-GET/#body-structure-200.
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
+            FORGE_CLIENT_SECRET = os.environ["FORGE_CLIENT_SECRET"]
+            client = ModelDerivativeClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            formats = client.get_formats()
+            print(formats)
+            ```
         """
         return self._get('/designdata/formats', []).json()
 
     def submit_job(self, urn, output_formats, output_region, root_filename=None, workflow_id=None, workflow_attr=None, force=False):
-        """Translate a design from one format to another format.
+        """
+        Translate a design from one format to another format.
 
-        Parameters:
-        urn (string): Base64-encoded ID of the object to translate.
-        output_formats (list): List of objects representing all the requested outputs. Each object should have at least 'type' property set to 'svf', 'svf2', etc.
-        output_region (string): Output region. Allowed values: 'US', 'EMEA'.
-        root_filename (string): Optional starting filename if the converted file is a ZIP archive.
-        workflow_id (string): Optional workflow ID.
-        workflow_attr (object): Optional workflow payload.
+        **Documentation**: https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http/job-POST
+
+        Args:
+            urn (str): Base64-encoded ID of the object to translate.
+            output_formats (list[dict]): List of objects representing all the requested outputs. Each object should have at least `type` property set to 'svf', 'svf2', etc.
+            output_region (str): Output region. Allowed values: 'US', 'EMEA'.
+            root_filename (str, optional): Starting filename if the converted file is a ZIP archive.
+            workflow_id (str, optional): Workflow ID.
+            workflow_attr (str, optional): Workflow payload.
 
         Returns:
-        object: Parsed response object. For more information, see https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http/job-POST/#body-structure-200-201.
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
+            FORGE_CLIENT_SECRET = os.environ["FORGE_CLIENT_SECRET"]
+            client = ModelDerivativeClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            job = client.submit_job(urn, [{ "type": "svf", views: ["2d", "3d"] }], "US")
+            print(job)
+            ```
         """
         json = {
             'input': {
