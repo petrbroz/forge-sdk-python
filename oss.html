@@ -26,16 +26,55 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">from urllib.parse import quote
-from .auth import BaseOAuthClient
+<pre><code class="python">from enum import Enum
+from urllib.parse import quote
+from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = &#39;https://developer.api.autodesk.com/oss/v2&#39;
-READ_SCOPES = [&#39;bucket:read&#39;, &#39;data:read&#39;]
-WRITE_SCOPES = [&#39;bucket:create&#39;, &#39;data:create&#39;, &#39;data:write&#39;]
-DELETE_SCOPES = [&#39;bucket:delete&#39;]
+READ_SCOPES = [Scope.BucketRead, Scope.DataRead]
+WRITE_SCOPES = [Scope.BucketCreate, Scope.DataCreate, Scope.DataWrite]
+DELETE_SCOPES = [Scope.BucketDelete]
+
+class DataRetention(Enum):
+    &#34;&#34;&#34;
+    Data retention policies.
+    &#34;&#34;&#34;
+    Transient = &#39;transient&#39;
+    &#34;&#34;&#34;
+    Think of this type of storage as a cache. Use it for ephemeral results. For example, you might use this for objects
+    that are part of producing other persistent artifacts, but otherwise are not required to be available later.
+
+    Objects older than 24 hours are removed automatically. Each upload of an object is considered unique, so, for example,
+    if the same rendering is uploaded multiple times, each of them will have its own retention period of 24 hours.
+    &#34;&#34;&#34;
+    Temporary = &#39;temporary&#39;
+    &#34;&#34;&#34;
+    This type of storage is suitable for artifacts produced for user-uploaded content where after some period of activity,
+    the user may rarely access the artifacts.
+
+    When an object has reached 30 days of age, it is deleted.
+    &#34;&#34;&#34;
+    Persistent = &#39;persistent&#39;
+    &#34;&#34;&#34;
+    Persistent storage is intended for user data. When a file is uploaded, the owner should expect this item
+    to be available for as long as the owner account is active, or until he or she deletes the item.
+    &#34;&#34;&#34;
 
 class OSSClient(BaseOAuthClient):
+    &#34;&#34;&#34;
+    Forge Data Management object storage client.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
+    &#34;&#34;&#34;
+
     def __init__(self, token_provider, base_url=BASE_URL):
+        &#34;&#34;&#34;
+        Create new instance of the client.
+
+        Args:
+            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            base_url (str, optional): Base URL for API calls.
+        &#34;&#34;&#34;
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
     def _get_paginated(self, url, scopes, params=None, headers=None):
@@ -50,15 +89,28 @@ class OSSClient(BaseOAuthClient):
         return items
 
     def get_buckets(self, region=None, limit=None, start_at=None):
-        &#34;&#34;&#34;Return the buckets owned by the application. This endpoint supports pagination.
+        &#34;&#34;&#34;
+        List buckets owned by the application, using pagination.
 
-        Parameters:
-        region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.
-        limit (int): Optional limit to the response size. Acceptable values: 1-100. Default = 10.
-        start_at (string): Optional key to use as an offset to continue pagination This is typically the last bucket key found in a preceding &#39;GET buckets&#39; response.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET
+
+        Args:
+            region (str, optional): Region where the bucket resides. Acceptable values: US, EMEA. Default: US.
+            limit (int, optional): Limit to the response size. Acceptable values: 1-100. Default = 10.
+            start_at (str, optional): Key to use as an offset to continue pagination. This is typically the last bucket key found in a preceding `get_buckets` response.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200 for more info.
+            dict: Parsed response object with top-level properties `items` and `next`.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            buckets = client.get_buckets(limit=8)
+            print(buckets.items)
+            print(buckets.next)
+            ```
         &#34;&#34;&#34;
         params = {}
         if region:
@@ -70,13 +122,25 @@ class OSSClient(BaseOAuthClient):
         return self._get(&#39;/buckets&#39;, READ_SCOPES, params).json()
 
     def get_all_buckets(self, region=None):
-        &#34;&#34;&#34;Return all buckets owned by the application.
+        &#34;&#34;&#34;
+        List all buckets owned by the application. Similar to `OSSClient.get_buckets` but returning all results without pagination.
 
-        Parameters:
-        region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET
+
+        Args:
+            region (str, optional): Region where the bucket resides. Acceptable values: US, EMEA. Default: US.
 
         Returns:
-        list: List of objects representing individual buckets. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200 for more info.
+            list[dict]: List of objects representing individual buckets.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            buckets = client.get_all_buckets()
+            print(buckets)
+            ```
         &#34;&#34;&#34;
         params = {}
         if region:
@@ -84,29 +148,58 @@ class OSSClient(BaseOAuthClient):
         return self._get_paginated(&#39;/buckets&#39;, READ_SCOPES, params)
 
     def get_bucket_details(self, bucket_key):
-        &#34;&#34;&#34;Return bucket details in JSON format if the caller is the owner of the bucket.
+        &#34;&#34;&#34;
+        Get bucket details in JSON format if the caller is the owner of the bucket.
         A request by any other application will result in a response of 403 Forbidden.
 
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET
+
         Returns:
-        object: Parsed response object with bucket properties. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET/#body-structure-200.
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            details = client.get_bucket_details(FORGE_BUCKET)
+            print(details)
+            ```
         &#34;&#34;&#34;
         return self._get(&#39;/buckets/{}/details&#39;.format(quote(bucket_key)), READ_SCOPES).json()
 
-    def create_bucket(self, bucket_key, policy_key, region):
-        &#34;&#34;&#34;Creates a bucket. Buckets are arbitrary spaces that are created by applications
+    def create_bucket(self, bucket_key, data_retention_policy, region):
+        &#34;&#34;&#34;
+        Create a bucket. Buckets are arbitrary spaces that are created by applications
         and are used to store objects for later retrieval. A bucket is owned by the application
         that creates it.
 
-        Parameters:
-        bucket_key (string): A unique name you assign to a bucket. It must be globally unique across
-            all applications and regions, otherwise the call will fail. Possible values: -_.a-z0-9
-            (between 3-128 characters in length). Note that you cannot change a bucket key.
-        policy_key (string): Data retention policy. Acceptable values: transient, temporary, persistent.
-        region (string): The region where the bucket resides. Acceptable values: US, EMEA.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-POST
+
+        Args:
+            bucket_key (str): A unique name you assign to a bucket. It must be globally unique across
+                all applications and regions, otherwise the call will fail. Possible values: -_.a-z0-9
+                (between 3-128 characters in length). Note that you cannot change a bucket key.
+            data_retention_policy (DataRetention): Data retention policy.
+            region (str): The region where the bucket resides. Acceptable values: US, EMEA.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            details = client.create_bucket(FORGE_BUCKET, DataRetention.Temporary, &#34;US&#34;)
+            print(details)
+            ```
         &#34;&#34;&#34;
         json = {
             &#39;bucketKey&#39;: bucket_key,
-            &#39;policyKey&#39;: policy_key
+            &#39;policyKey&#39;: data_retention_policy.value
         }
         headers = {
             &#39;x-ads-region&#39;: region
@@ -114,24 +207,41 @@ class OSSClient(BaseOAuthClient):
         return self._post(&#39;/buckets&#39;, WRITE_SCOPES, json=json, headers=headers).json()
 
     def delete_bucket(self, bucket_key):
-        &#34;&#34;&#34;Deletes a bucket. The bucket must be owned by the application.
+        &#34;&#34;&#34;
+        Delete a bucket. The bucket must be owned by the application.
 
-        Parameters:
-        bucket_key (string): Name of the bucket to be deleted.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-DELETE
+
+        Args:
+            bucket_key (str): Name of the bucket to be deleted.
         &#34;&#34;&#34;
         return self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)
 
     def get_objects(self, bucket_key, limit=None, begins_with=None, start_at=None):
-        &#34;&#34;&#34;List objects in a bucket. It is only available to the bucket creator.
+        &#34;&#34;&#34;
+        List objects in bucket, using pagination. It is only available to the bucket creator.
 
-        Parameters:
-        bucket_key (string): Bucket key for which to get details.
-        limit (int): Optional number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.
-        begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
-        start_at (string): Optional position to start listing the result set.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET
+
+        Args:
+            bucket_key (str): Bucket key for which to get details.
+            limit (int, optional): Number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.
+            begins_with (str, optional): String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
+            start_at (str, optional): Position to start listing the result set.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.
+            dict: Parsed response object with top-level properties `items` and `next`.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            objects = client.get_objects(FORGE_BUCKET, limit=8)
+            print(objects.items)
+            print(objects.next)
+            ```
         &#34;&#34;&#34;
         params = {}
         if limit:
@@ -143,13 +253,24 @@ class OSSClient(BaseOAuthClient):
         return self._get(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params).json()
 
     def get_all_objects(self, bucket_key, begins_with=None):
-        &#34;&#34;&#34;Return all objects in bucket.
+        &#34;&#34;&#34;
+        List all objects in bucket. Similar to `OSSClient.get_objects` but returning all results without pagination.
 
-        Parameters:
-        begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
+        Args:
+            begins_with (str, optional): String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
 
         Returns:
-        list: List of objects. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.
+            list[dict]: List of objects.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            objects = client.get_all_objects(FORGE_BUCKET, begins_with=&#34;prefix&#34;)
+            print(objects)
+            ```
         &#34;&#34;&#34;
         params = {}
         if begins_with:
@@ -157,39 +278,72 @@ class OSSClient(BaseOAuthClient):
         return self._get_paginated(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params)
 
     def get_object_details(self, bucket_key, object_key):
-        &#34;&#34;&#34;Returns object details in JSON format.
+        &#34;&#34;&#34;
+        Get object details in JSON format.
 
-        Parameters:
-        bucket_key (string): Bucket key.
-        object_key (string): Object name to get details for.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET
+
+        Args:
+            bucket_key (str): Bucket key.
+            object_key (str): Object name to get details for.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET/#body-structure-200.
+            dict: Parsed response JSON with object properties.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            details = client.get_object_details(FORGE_BUCKET, &#34;design.dwg&#34;)
+            print(details)
+            ```
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._get(url, READ_SCOPES).json()
 
     def upload_object(self, bucket_key, object_key, buff):
-        &#34;&#34;&#34;Upload an object. If the specified object name already exists in the bucket,
+        &#34;&#34;&#34;
+        Upload an object. If the specified object name already exists in the bucket,
         the uploaded content will overwrite the existing content for the bucket name/object name combination.
 
-        Parameters:
-        bucket_key (string): Bucket key.
-        object_key (string): Name of the object to be created.
-        buff (file|buffer): Content to upload.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT
+
+        Args:
+            bucket_key (str): Bucket key.
+            object_key (str): Name of the object to be created.
+            buff (list of bytes or file): Content to upload.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT/#body-structure-200.
+            dict: Parsed response JSON with object properties.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            buff = bytes(&#34;This is a test...&#34;, &#34;utf-8&#34;)
+            obj1 = client.upload_object(FORGE_BUCKET, &#34;myfile.txt&#34;, buff)
+            print(obj1)
+            with open(&#34;local.dwg&#34;, &#34;rb&#34;) as file:
+                obj2 = client.upload_object(FORGE_BUCKET, &#34;mydesign.dwg&#34;, file)
+                print(obj2)
+            ```
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._put(url, WRITE_SCOPES, buff=buff).json()
 
     def delete_object(self, bucket_key, object_key):
-        &#34;&#34;&#34;Deletes an object from the bucket.
+        &#34;&#34;&#34;
+        Delete an object from bucket.
 
-        Parameters:
-        bucket_key (string): Bucket key.
-        object_key (string): Name of the object to be removed.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-DELETE
+
+        Args:
+            bucket_key (str): Bucket key.
+            object_key (str): Name of the object to be removed.
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._delete(url, DELETE_SCOPES)</code></pre>
@@ -204,18 +358,101 @@ class OSSClient(BaseOAuthClient):
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
+<dt id="autodesk_forge_sdk.oss.DataRetention"><code class="flex name class">
+<span>class <span class="ident">DataRetention</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data retention policies.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DataRetention(Enum):
+    &#34;&#34;&#34;
+    Data retention policies.
+    &#34;&#34;&#34;
+    Transient = &#39;transient&#39;
+    &#34;&#34;&#34;
+    Think of this type of storage as a cache. Use it for ephemeral results. For example, you might use this for objects
+    that are part of producing other persistent artifacts, but otherwise are not required to be available later.
+
+    Objects older than 24 hours are removed automatically. Each upload of an object is considered unique, so, for example,
+    if the same rendering is uploaded multiple times, each of them will have its own retention period of 24 hours.
+    &#34;&#34;&#34;
+    Temporary = &#39;temporary&#39;
+    &#34;&#34;&#34;
+    This type of storage is suitable for artifacts produced for user-uploaded content where after some period of activity,
+    the user may rarely access the artifacts.
+
+    When an object has reached 30 days of age, it is deleted.
+    &#34;&#34;&#34;
+    Persistent = &#39;persistent&#39;
+    &#34;&#34;&#34;
+    Persistent storage is intended for user data. When a file is uploaded, the owner should expect this item
+    to be available for as long as the owner account is active, or until he or she deletes the item.
+    &#34;&#34;&#34;</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="autodesk_forge_sdk.oss.DataRetention.Persistent"><code class="name">var <span class="ident">Persistent</span></code></dt>
+<dd>
+<div class="desc"><p>Persistent storage is intended for user data. When a file is uploaded, the owner should expect this item
+to be available for as long as the owner account is active, or until he or she deletes the item.</p></div>
+</dd>
+<dt id="autodesk_forge_sdk.oss.DataRetention.Temporary"><code class="name">var <span class="ident">Temporary</span></code></dt>
+<dd>
+<div class="desc"><p>This type of storage is suitable for artifacts produced for user-uploaded content where after some period of activity,
+the user may rarely access the artifacts.</p>
+<p>When an object has reached 30 days of age, it is deleted.</p></div>
+</dd>
+<dt id="autodesk_forge_sdk.oss.DataRetention.Transient"><code class="name">var <span class="ident">Transient</span></code></dt>
+<dd>
+<div class="desc"><p>Think of this type of storage as a cache. Use it for ephemeral results. For example, you might use this for objects
+that are part of producing other persistent artifacts, but otherwise are not required to be available later.</p>
+<p>Objects older than 24 hours are removed automatically. Each upload of an object is considered unique, so, for example,
+if the same rendering is uploaded multiple times, each of them will have its own retention period of 24 hours.</p></div>
+</dd>
+</dl>
+</dd>
 <dt id="autodesk_forge_sdk.oss.OSSClient"><code class="flex name class">
 <span>class <span class="ident">OSSClient</span></span>
 <span>(</span><span>token_provider, base_url='https://developer.api.autodesk.com/oss/v2')</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Forge Data Management object storage client.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http">https://forge.autodesk.com/en/docs/data/v2/reference/http</a></p>
+<p>Create new instance of the client.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>token_provider</code></strong> :&ensp;<code>TokenProviderInterface</code></dt>
+<dd>Provider that will be used to generate access tokens for API calls.</dd>
+<dt><strong><code>base_url</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Base URL for API calls.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class OSSClient(BaseOAuthClient):
+    &#34;&#34;&#34;
+    Forge Data Management object storage client.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
+    &#34;&#34;&#34;
+
     def __init__(self, token_provider, base_url=BASE_URL):
+        &#34;&#34;&#34;
+        Create new instance of the client.
+
+        Args:
+            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            base_url (str, optional): Base URL for API calls.
+        &#34;&#34;&#34;
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
     def _get_paginated(self, url, scopes, params=None, headers=None):
@@ -230,15 +467,28 @@ class OSSClient(BaseOAuthClient):
         return items
 
     def get_buckets(self, region=None, limit=None, start_at=None):
-        &#34;&#34;&#34;Return the buckets owned by the application. This endpoint supports pagination.
+        &#34;&#34;&#34;
+        List buckets owned by the application, using pagination.
 
-        Parameters:
-        region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.
-        limit (int): Optional limit to the response size. Acceptable values: 1-100. Default = 10.
-        start_at (string): Optional key to use as an offset to continue pagination This is typically the last bucket key found in a preceding &#39;GET buckets&#39; response.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET
+
+        Args:
+            region (str, optional): Region where the bucket resides. Acceptable values: US, EMEA. Default: US.
+            limit (int, optional): Limit to the response size. Acceptable values: 1-100. Default = 10.
+            start_at (str, optional): Key to use as an offset to continue pagination. This is typically the last bucket key found in a preceding `get_buckets` response.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200 for more info.
+            dict: Parsed response object with top-level properties `items` and `next`.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            buckets = client.get_buckets(limit=8)
+            print(buckets.items)
+            print(buckets.next)
+            ```
         &#34;&#34;&#34;
         params = {}
         if region:
@@ -250,13 +500,25 @@ class OSSClient(BaseOAuthClient):
         return self._get(&#39;/buckets&#39;, READ_SCOPES, params).json()
 
     def get_all_buckets(self, region=None):
-        &#34;&#34;&#34;Return all buckets owned by the application.
+        &#34;&#34;&#34;
+        List all buckets owned by the application. Similar to `OSSClient.get_buckets` but returning all results without pagination.
 
-        Parameters:
-        region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET
+
+        Args:
+            region (str, optional): Region where the bucket resides. Acceptable values: US, EMEA. Default: US.
 
         Returns:
-        list: List of objects representing individual buckets. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200 for more info.
+            list[dict]: List of objects representing individual buckets.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            buckets = client.get_all_buckets()
+            print(buckets)
+            ```
         &#34;&#34;&#34;
         params = {}
         if region:
@@ -264,29 +526,58 @@ class OSSClient(BaseOAuthClient):
         return self._get_paginated(&#39;/buckets&#39;, READ_SCOPES, params)
 
     def get_bucket_details(self, bucket_key):
-        &#34;&#34;&#34;Return bucket details in JSON format if the caller is the owner of the bucket.
+        &#34;&#34;&#34;
+        Get bucket details in JSON format if the caller is the owner of the bucket.
         A request by any other application will result in a response of 403 Forbidden.
 
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET
+
         Returns:
-        object: Parsed response object with bucket properties. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET/#body-structure-200.
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            details = client.get_bucket_details(FORGE_BUCKET)
+            print(details)
+            ```
         &#34;&#34;&#34;
         return self._get(&#39;/buckets/{}/details&#39;.format(quote(bucket_key)), READ_SCOPES).json()
 
-    def create_bucket(self, bucket_key, policy_key, region):
-        &#34;&#34;&#34;Creates a bucket. Buckets are arbitrary spaces that are created by applications
+    def create_bucket(self, bucket_key, data_retention_policy, region):
+        &#34;&#34;&#34;
+        Create a bucket. Buckets are arbitrary spaces that are created by applications
         and are used to store objects for later retrieval. A bucket is owned by the application
         that creates it.
 
-        Parameters:
-        bucket_key (string): A unique name you assign to a bucket. It must be globally unique across
-            all applications and regions, otherwise the call will fail. Possible values: -_.a-z0-9
-            (between 3-128 characters in length). Note that you cannot change a bucket key.
-        policy_key (string): Data retention policy. Acceptable values: transient, temporary, persistent.
-        region (string): The region where the bucket resides. Acceptable values: US, EMEA.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-POST
+
+        Args:
+            bucket_key (str): A unique name you assign to a bucket. It must be globally unique across
+                all applications and regions, otherwise the call will fail. Possible values: -_.a-z0-9
+                (between 3-128 characters in length). Note that you cannot change a bucket key.
+            data_retention_policy (DataRetention): Data retention policy.
+            region (str): The region where the bucket resides. Acceptable values: US, EMEA.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            details = client.create_bucket(FORGE_BUCKET, DataRetention.Temporary, &#34;US&#34;)
+            print(details)
+            ```
         &#34;&#34;&#34;
         json = {
             &#39;bucketKey&#39;: bucket_key,
-            &#39;policyKey&#39;: policy_key
+            &#39;policyKey&#39;: data_retention_policy.value
         }
         headers = {
             &#39;x-ads-region&#39;: region
@@ -294,24 +585,41 @@ class OSSClient(BaseOAuthClient):
         return self._post(&#39;/buckets&#39;, WRITE_SCOPES, json=json, headers=headers).json()
 
     def delete_bucket(self, bucket_key):
-        &#34;&#34;&#34;Deletes a bucket. The bucket must be owned by the application.
+        &#34;&#34;&#34;
+        Delete a bucket. The bucket must be owned by the application.
 
-        Parameters:
-        bucket_key (string): Name of the bucket to be deleted.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-DELETE
+
+        Args:
+            bucket_key (str): Name of the bucket to be deleted.
         &#34;&#34;&#34;
         return self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)
 
     def get_objects(self, bucket_key, limit=None, begins_with=None, start_at=None):
-        &#34;&#34;&#34;List objects in a bucket. It is only available to the bucket creator.
+        &#34;&#34;&#34;
+        List objects in bucket, using pagination. It is only available to the bucket creator.
 
-        Parameters:
-        bucket_key (string): Bucket key for which to get details.
-        limit (int): Optional number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.
-        begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
-        start_at (string): Optional position to start listing the result set.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET
+
+        Args:
+            bucket_key (str): Bucket key for which to get details.
+            limit (int, optional): Number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.
+            begins_with (str, optional): String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
+            start_at (str, optional): Position to start listing the result set.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.
+            dict: Parsed response object with top-level properties `items` and `next`.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            objects = client.get_objects(FORGE_BUCKET, limit=8)
+            print(objects.items)
+            print(objects.next)
+            ```
         &#34;&#34;&#34;
         params = {}
         if limit:
@@ -323,13 +631,24 @@ class OSSClient(BaseOAuthClient):
         return self._get(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params).json()
 
     def get_all_objects(self, bucket_key, begins_with=None):
-        &#34;&#34;&#34;Return all objects in bucket.
+        &#34;&#34;&#34;
+        List all objects in bucket. Similar to `OSSClient.get_objects` but returning all results without pagination.
 
-        Parameters:
-        begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
+        Args:
+            begins_with (str, optional): String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
 
         Returns:
-        list: List of objects. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.
+            list[dict]: List of objects.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            objects = client.get_all_objects(FORGE_BUCKET, begins_with=&#34;prefix&#34;)
+            print(objects)
+            ```
         &#34;&#34;&#34;
         params = {}
         if begins_with:
@@ -337,39 +656,72 @@ class OSSClient(BaseOAuthClient):
         return self._get_paginated(&#39;/buckets/{}/objects&#39;.format(quote(bucket_key)), READ_SCOPES, params)
 
     def get_object_details(self, bucket_key, object_key):
-        &#34;&#34;&#34;Returns object details in JSON format.
+        &#34;&#34;&#34;
+        Get object details in JSON format.
 
-        Parameters:
-        bucket_key (string): Bucket key.
-        object_key (string): Object name to get details for.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET
+
+        Args:
+            bucket_key (str): Bucket key.
+            object_key (str): Object name to get details for.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET/#body-structure-200.
+            dict: Parsed response JSON with object properties.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            details = client.get_object_details(FORGE_BUCKET, &#34;design.dwg&#34;)
+            print(details)
+            ```
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._get(url, READ_SCOPES).json()
 
     def upload_object(self, bucket_key, object_key, buff):
-        &#34;&#34;&#34;Upload an object. If the specified object name already exists in the bucket,
+        &#34;&#34;&#34;
+        Upload an object. If the specified object name already exists in the bucket,
         the uploaded content will overwrite the existing content for the bucket name/object name combination.
 
-        Parameters:
-        bucket_key (string): Bucket key.
-        object_key (string): Name of the object to be created.
-        buff (file|buffer): Content to upload.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT
+
+        Args:
+            bucket_key (str): Bucket key.
+            object_key (str): Name of the object to be created.
+            buff (list of bytes or file): Content to upload.
 
         Returns:
-        object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT/#body-structure-200.
+            dict: Parsed response JSON with object properties.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+            FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+            FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+            client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+            buff = bytes(&#34;This is a test...&#34;, &#34;utf-8&#34;)
+            obj1 = client.upload_object(FORGE_BUCKET, &#34;myfile.txt&#34;, buff)
+            print(obj1)
+            with open(&#34;local.dwg&#34;, &#34;rb&#34;) as file:
+                obj2 = client.upload_object(FORGE_BUCKET, &#34;mydesign.dwg&#34;, file)
+                print(obj2)
+            ```
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._put(url, WRITE_SCOPES, buff=buff).json()
 
     def delete_object(self, bucket_key, object_key):
-        &#34;&#34;&#34;Deletes an object from the bucket.
+        &#34;&#34;&#34;
+        Delete an object from bucket.
 
-        Parameters:
-        bucket_key (string): Bucket key.
-        object_key (string): Name of the object to be removed.
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-DELETE
+
+        Args:
+            bucket_key (str): Bucket key.
+            object_key (str): Name of the object to be removed.
         &#34;&#34;&#34;
         url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
         return self._delete(url, DELETE_SCOPES)</code></pre>
@@ -382,37 +734,72 @@ class OSSClient(BaseOAuthClient):
 <h3>Methods</h3>
 <dl>
 <dt id="autodesk_forge_sdk.oss.OSSClient.create_bucket"><code class="name flex">
-<span>def <span class="ident">create_bucket</span></span>(<span>self, bucket_key, policy_key, region)</span>
+<span>def <span class="ident">create_bucket</span></span>(<span>self, bucket_key, data_retention_policy, region)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Creates a bucket. Buckets are arbitrary spaces that are created by applications
+<div class="desc"><p>Create a bucket. Buckets are arbitrary spaces that are created by applications
 and are used to store objects for later retrieval. A bucket is owned by the application
 that creates it.</p>
-<p>Parameters:
-bucket_key (string): A unique name you assign to a bucket. It must be globally unique across
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-POST">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-POST</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>bucket_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>A unique name you assign to a bucket. It must be globally unique across
 all applications and regions, otherwise the call will fail. Possible values: -_.a-z0-9
-(between 3-128 characters in length). Note that you cannot change a bucket key.
-policy_key (string): Data retention policy. Acceptable values: transient, temporary, persistent.
-region (string): The region where the bucket resides. Acceptable values: US, EMEA.</p></div>
+(between 3-128 characters in length). Note that you cannot change a bucket key.</dd>
+<dt><strong><code>data_retention_policy</code></strong> :&ensp;<code><a title="autodesk_forge_sdk.oss.DataRetention" href="#autodesk_forge_sdk.oss.DataRetention">DataRetention</a></code></dt>
+<dd>Data retention policy.</dd>
+<dt><strong><code>region</code></strong> :&ensp;<code>str</code></dt>
+<dd>The region where the bucket resides. Acceptable values: US, EMEA.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response JSON.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+FORGE_BUCKET = os.environ[&quot;FORGE_BUCKET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+details = client.create_bucket(FORGE_BUCKET, DataRetention.Temporary, &quot;US&quot;)
+print(details)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def create_bucket(self, bucket_key, policy_key, region):
-    &#34;&#34;&#34;Creates a bucket. Buckets are arbitrary spaces that are created by applications
+<pre><code class="python">def create_bucket(self, bucket_key, data_retention_policy, region):
+    &#34;&#34;&#34;
+    Create a bucket. Buckets are arbitrary spaces that are created by applications
     and are used to store objects for later retrieval. A bucket is owned by the application
     that creates it.
 
-    Parameters:
-    bucket_key (string): A unique name you assign to a bucket. It must be globally unique across
-        all applications and regions, otherwise the call will fail. Possible values: -_.a-z0-9
-        (between 3-128 characters in length). Note that you cannot change a bucket key.
-    policy_key (string): Data retention policy. Acceptable values: transient, temporary, persistent.
-    region (string): The region where the bucket resides. Acceptable values: US, EMEA.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-POST
+
+    Args:
+        bucket_key (str): A unique name you assign to a bucket. It must be globally unique across
+            all applications and regions, otherwise the call will fail. Possible values: -_.a-z0-9
+            (between 3-128 characters in length). Note that you cannot change a bucket key.
+        data_retention_policy (DataRetention): Data retention policy.
+        region (str): The region where the bucket resides. Acceptable values: US, EMEA.
+
+    Returns:
+        dict: Parsed response JSON.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        details = client.create_bucket(FORGE_BUCKET, DataRetention.Temporary, &#34;US&#34;)
+        print(details)
+        ```
     &#34;&#34;&#34;
     json = {
         &#39;bucketKey&#39;: bucket_key,
-        &#39;policyKey&#39;: policy_key
+        &#39;policyKey&#39;: data_retention_policy.value
     }
     headers = {
         &#39;x-ads-region&#39;: region
@@ -424,18 +811,25 @@ region (string): The region where the bucket resides. Acceptable values: US, EME
 <span>def <span class="ident">delete_bucket</span></span>(<span>self, bucket_key)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Deletes a bucket. The bucket must be owned by the application.</p>
-<p>Parameters:
-bucket_key (string): Name of the bucket to be deleted.</p></div>
+<div class="desc"><p>Delete a bucket. The bucket must be owned by the application.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-DELETE">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-DELETE</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>bucket_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Name of the bucket to be deleted.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def delete_bucket(self, bucket_key):
-    &#34;&#34;&#34;Deletes a bucket. The bucket must be owned by the application.
+    &#34;&#34;&#34;
+    Delete a bucket. The bucket must be owned by the application.
 
-    Parameters:
-    bucket_key (string): Name of the bucket to be deleted.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-DELETE
+
+    Args:
+        bucket_key (str): Name of the bucket to be deleted.
     &#34;&#34;&#34;
     return self._delete(&#39;/buckets/{}&#39;.format(quote(bucket_key)), DELETE_SCOPES)</code></pre>
 </details>
@@ -444,20 +838,28 @@ bucket_key (string): Name of the bucket to be deleted.</p></div>
 <span>def <span class="ident">delete_object</span></span>(<span>self, bucket_key, object_key)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Deletes an object from the bucket.</p>
-<p>Parameters:
-bucket_key (string): Bucket key.
-object_key (string): Name of the object to be removed.</p></div>
+<div class="desc"><p>Delete an object from bucket.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-DELETE">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-DELETE</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>bucket_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Bucket key.</dd>
+<dt><strong><code>object_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Name of the object to be removed.</dd>
+</dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def delete_object(self, bucket_key, object_key):
-    &#34;&#34;&#34;Deletes an object from the bucket.
+    &#34;&#34;&#34;
+    Delete an object from bucket.
 
-    Parameters:
-    bucket_key (string): Bucket key.
-    object_key (string): Name of the object to be removed.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-DELETE
+
+    Args:
+        bucket_key (str): Bucket key.
+        object_key (str): Name of the object to be removed.
     &#34;&#34;&#34;
     url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
     return self._delete(url, DELETE_SCOPES)</code></pre>
@@ -467,23 +869,49 @@ object_key (string): Name of the object to be removed.</p></div>
 <span>def <span class="ident">get_all_buckets</span></span>(<span>self, region=None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Return all buckets owned by the application.</p>
-<p>Parameters:
-region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.</p>
-<p>Returns:
-list: List of objects representing individual buckets. See <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200</a> for more info.</p></div>
+<div class="desc"><p>List all buckets owned by the application. Similar to <code><a title="autodesk_forge_sdk.oss.OSSClient.get_buckets" href="#autodesk_forge_sdk.oss.OSSClient.get_buckets">OSSClient.get_buckets()</a></code> but returning all results without pagination.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>region</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Region where the bucket resides. Acceptable values: US, EMEA. Default: US.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>list[dict]</code></dt>
+<dd>List of objects representing individual buckets.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+buckets = client.get_all_buckets()
+print(buckets)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_all_buckets(self, region=None):
-    &#34;&#34;&#34;Return all buckets owned by the application.
+    &#34;&#34;&#34;
+    List all buckets owned by the application. Similar to `OSSClient.get_buckets` but returning all results without pagination.
 
-    Parameters:
-    region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET
+
+    Args:
+        region (str, optional): Region where the bucket resides. Acceptable values: US, EMEA. Default: US.
 
     Returns:
-    list: List of objects representing individual buckets. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200 for more info.
+        list[dict]: List of objects representing individual buckets.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        buckets = client.get_all_buckets()
+        print(buckets)
+        ```
     &#34;&#34;&#34;
     params = {}
     if region:
@@ -495,23 +923,48 @@ list: List of objects representing individual buckets. See <a href="https://forg
 <span>def <span class="ident">get_all_objects</span></span>(<span>self, bucket_key, begins_with=None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Return all objects in bucket.</p>
-<p>Parameters:
-begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.</p>
-<p>Returns:
-list: List of objects. See <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.</a></p></div>
+<div class="desc"><p>List all objects in bucket. Similar to <code><a title="autodesk_forge_sdk.oss.OSSClient.get_objects" href="#autodesk_forge_sdk.oss.OSSClient.get_objects">OSSClient.get_objects()</a></code> but returning all results without pagination.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>begins_with</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>list[dict]</code></dt>
+<dd>List of objects.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+FORGE_BUCKET = os.environ[&quot;FORGE_BUCKET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+objects = client.get_all_objects(FORGE_BUCKET, begins_with=&quot;prefix&quot;)
+print(objects)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_all_objects(self, bucket_key, begins_with=None):
-    &#34;&#34;&#34;Return all objects in bucket.
+    &#34;&#34;&#34;
+    List all objects in bucket. Similar to `OSSClient.get_objects` but returning all results without pagination.
 
-    Parameters:
-    begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
+    Args:
+        begins_with (str, optional): String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
 
     Returns:
-    list: List of objects. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.
+        list[dict]: List of objects.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        objects = client.get_all_objects(FORGE_BUCKET, begins_with=&#34;prefix&#34;)
+        print(objects)
+        ```
     &#34;&#34;&#34;
     params = {}
     if begins_with:
@@ -523,20 +976,45 @@ list: List of objects. See <a href="https://forge.autodesk.com/en/docs/data/v2/r
 <span>def <span class="ident">get_bucket_details</span></span>(<span>self, bucket_key)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Return bucket details in JSON format if the caller is the owner of the bucket.
+<div class="desc"><p>Get bucket details in JSON format if the caller is the owner of the bucket.
 A request by any other application will result in a response of 403 Forbidden.</p>
-<p>Returns:
-object: Parsed response object with bucket properties. See <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET/#body-structure-200.">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET/#body-structure-200.</a></p></div>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET</a></p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response JSON.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+FORGE_BUCKET = os.environ[&quot;FORGE_BUCKET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+details = client.get_bucket_details(FORGE_BUCKET)
+print(details)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_bucket_details(self, bucket_key):
-    &#34;&#34;&#34;Return bucket details in JSON format if the caller is the owner of the bucket.
+    &#34;&#34;&#34;
+    Get bucket details in JSON format if the caller is the owner of the bucket.
     A request by any other application will result in a response of 403 Forbidden.
 
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET
+
     Returns:
-    object: Parsed response object with bucket properties. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-details-GET/#body-structure-200.
+        dict: Parsed response JSON.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        details = client.get_bucket_details(FORGE_BUCKET)
+        print(details)
+        ```
     &#34;&#34;&#34;
     return self._get(&#39;/buckets/{}/details&#39;.format(quote(bucket_key)), READ_SCOPES).json()</code></pre>
 </details>
@@ -545,27 +1023,57 @@ object: Parsed response object with bucket properties. See <a href="https://forg
 <span>def <span class="ident">get_buckets</span></span>(<span>self, region=None, limit=None, start_at=None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Return the buckets owned by the application. This endpoint supports pagination.</p>
-<p>Parameters:
-region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.
-limit (int): Optional limit to the response size. Acceptable values: 1-100. Default = 10.
-start_at (string): Optional key to use as an offset to continue pagination This is typically the last bucket key found in a preceding 'GET buckets' response.</p>
-<p>Returns:
-object: Parsed response object with top-level properties 'items' and 'next'. See <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200</a> for more info.</p></div>
+<div class="desc"><p>List buckets owned by the application, using pagination.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>region</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Region where the bucket resides. Acceptable values: US, EMEA. Default: US.</dd>
+<dt><strong><code>limit</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Limit to the response size. Acceptable values: 1-100. Default = 10.</dd>
+<dt><strong><code>start_at</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Key to use as an offset to continue pagination. This is typically the last bucket key found in a preceding <code>get_buckets</code> response.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response object with top-level properties <code>items</code> and <code>next</code>.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+buckets = client.get_buckets(limit=8)
+print(buckets.items)
+print(buckets.next)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_buckets(self, region=None, limit=None, start_at=None):
-    &#34;&#34;&#34;Return the buckets owned by the application. This endpoint supports pagination.
+    &#34;&#34;&#34;
+    List buckets owned by the application, using pagination.
 
-    Parameters:
-    region (string): Optional region where the bucket resides. Acceptable values: US, EMEA. Default: US.
-    limit (int): Optional limit to the response size. Acceptable values: 1-100. Default = 10.
-    start_at (string): Optional key to use as an offset to continue pagination This is typically the last bucket key found in a preceding &#39;GET buckets&#39; response.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET
+
+    Args:
+        region (str, optional): Region where the bucket resides. Acceptable values: US, EMEA. Default: US.
+        limit (int, optional): Limit to the response size. Acceptable values: 1-100. Default = 10.
+        start_at (str, optional): Key to use as an offset to continue pagination. This is typically the last bucket key found in a preceding `get_buckets` response.
 
     Returns:
-    object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET/#body-structure-200 for more info.
+        dict: Parsed response object with top-level properties `items` and `next`.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        buckets = client.get_buckets(limit=8)
+        print(buckets.items)
+        print(buckets.next)
+        ```
     &#34;&#34;&#34;
     params = {}
     if region:
@@ -581,25 +1089,54 @@ object: Parsed response object with top-level properties 'items' and 'next'. See
 <span>def <span class="ident">get_object_details</span></span>(<span>self, bucket_key, object_key)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Returns object details in JSON format.</p>
-<p>Parameters:
-bucket_key (string): Bucket key.
-object_key (string): Object name to get details for.</p>
-<p>Returns:
-object: Parsed response object with top-level properties 'items' and 'next'. See <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET/#body-structure-200.">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET/#body-structure-200.</a></p></div>
+<div class="desc"><p>Get object details in JSON format.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>bucket_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Bucket key.</dd>
+<dt><strong><code>object_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Object name to get details for.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response JSON with object properties.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+FORGE_BUCKET = os.environ[&quot;FORGE_BUCKET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+details = client.get_object_details(FORGE_BUCKET, &quot;design.dwg&quot;)
+print(details)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_object_details(self, bucket_key, object_key):
-    &#34;&#34;&#34;Returns object details in JSON format.
+    &#34;&#34;&#34;
+    Get object details in JSON format.
 
-    Parameters:
-    bucket_key (string): Bucket key.
-    object_key (string): Object name to get details for.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET
+
+    Args:
+        bucket_key (str): Bucket key.
+        object_key (str): Object name to get details for.
 
     Returns:
-    object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET/#body-structure-200.
+        dict: Parsed response JSON with object properties.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        details = client.get_object_details(FORGE_BUCKET, &#34;design.dwg&#34;)
+        print(details)
+        ```
     &#34;&#34;&#34;
     url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
     return self._get(url, READ_SCOPES).json()</code></pre>
@@ -609,29 +1146,62 @@ object: Parsed response object with top-level properties 'items' and 'next'. See
 <span>def <span class="ident">get_objects</span></span>(<span>self, bucket_key, limit=None, begins_with=None, start_at=None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>List objects in a bucket. It is only available to the bucket creator.</p>
-<p>Parameters:
-bucket_key (string): Bucket key for which to get details.
-limit (int): Optional number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.
-begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
-start_at (string): Optional position to start listing the result set.</p>
-<p>Returns:
-object: Parsed response object with top-level properties 'items' and 'next'. See <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.</a></p></div>
+<div class="desc"><p>List objects in bucket, using pagination. It is only available to the bucket creator.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>bucket_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Bucket key for which to get details.</dd>
+<dt><strong><code>limit</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.</dd>
+<dt><strong><code>begins_with</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.</dd>
+<dt><strong><code>start_at</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Position to start listing the result set.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response object with top-level properties <code>items</code> and <code>next</code>.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+FORGE_BUCKET = os.environ[&quot;FORGE_BUCKET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+objects = client.get_objects(FORGE_BUCKET, limit=8)
+print(objects.items)
+print(objects.next)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_objects(self, bucket_key, limit=None, begins_with=None, start_at=None):
-    &#34;&#34;&#34;List objects in a bucket. It is only available to the bucket creator.
+    &#34;&#34;&#34;
+    List objects in bucket, using pagination. It is only available to the bucket creator.
 
-    Parameters:
-    bucket_key (string): Bucket key for which to get details.
-    limit (int): Optional number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.
-    begins_with (string): Optional string to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
-    start_at (string): Optional position to start listing the result set.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET
+
+    Args:
+        bucket_key (str): Bucket key for which to get details.
+        limit (int, optional): Number of objects to return in the result set. Acceptable values = 1 - 100. Default = 10.
+        begins_with (str, optional): String to filter the result set by. The result set is restricted to items whose objectKey begins with the provided string.
+        start_at (str, optional): Position to start listing the result set.
 
     Returns:
-    object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-GET/#body-structure-200.
+        dict: Parsed response object with top-level properties `items` and `next`.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        objects = client.get_objects(FORGE_BUCKET, limit=8)
+        print(objects.items)
+        print(objects.next)
+        ```
     &#34;&#34;&#34;
     params = {}
     if limit:
@@ -649,27 +1219,65 @@ object: Parsed response object with top-level properties 'items' and 'next'. See
 <dd>
 <div class="desc"><p>Upload an object. If the specified object name already exists in the bucket,
 the uploaded content will overwrite the existing content for the bucket name/object name combination.</p>
-<p>Parameters:
-bucket_key (string): Bucket key.
-object_key (string): Name of the object to be created.
-buff (file|buffer): Content to upload.</p>
-<p>Returns:
-object: Parsed response object with top-level properties 'items' and 'next'. See <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT/#body-structure-200.">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT/#body-structure-200.</a></p></div>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>bucket_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Bucket key.</dd>
+<dt><strong><code>object_key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Name of the object to be created.</dd>
+<dt><strong><code>buff</code></strong> :&ensp;<code>list</code> of <code>bytes</code> or <code>file</code></dt>
+<dd>Content to upload.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response JSON with object properties.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
+FORGE_BUCKET = os.environ[&quot;FORGE_BUCKET&quot;]
+client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+buff = bytes(&quot;This is a test...&quot;, &quot;utf-8&quot;)
+obj1 = client.upload_object(FORGE_BUCKET, &quot;myfile.txt&quot;, buff)
+print(obj1)
+with open(&quot;local.dwg&quot;, &quot;rb&quot;) as file:
+    obj2 = client.upload_object(FORGE_BUCKET, &quot;mydesign.dwg&quot;, file)
+    print(obj2)
+</code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def upload_object(self, bucket_key, object_key, buff):
-    &#34;&#34;&#34;Upload an object. If the specified object name already exists in the bucket,
+    &#34;&#34;&#34;
+    Upload an object. If the specified object name already exists in the bucket,
     the uploaded content will overwrite the existing content for the bucket name/object name combination.
 
-    Parameters:
-    bucket_key (string): Bucket key.
-    object_key (string): Name of the object to be created.
-    buff (file|buffer): Content to upload.
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT
+
+    Args:
+        bucket_key (str): Bucket key.
+        object_key (str): Name of the object to be created.
+        buff (list of bytes or file): Content to upload.
 
     Returns:
-    object: Parsed response object with top-level properties &#39;items&#39; and &#39;next&#39;. See https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-PUT/#body-structure-200.
+        dict: Parsed response JSON with object properties.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
+        FORGE_BUCKET = os.environ[&#34;FORGE_BUCKET&#34;]
+        client = OSSClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+        buff = bytes(&#34;This is a test...&#34;, &#34;utf-8&#34;)
+        obj1 = client.upload_object(FORGE_BUCKET, &#34;myfile.txt&#34;, buff)
+        print(obj1)
+        with open(&#34;local.dwg&#34;, &#34;rb&#34;) as file:
+            obj2 = client.upload_object(FORGE_BUCKET, &#34;mydesign.dwg&#34;, file)
+            print(obj2)
+        ```
     &#34;&#34;&#34;
     url = &#39;/buckets/{}/objects/{}&#39;.format(quote(bucket_key), quote(object_key))
     return self._put(url, WRITE_SCOPES, buff=buff).json()</code></pre>
@@ -693,6 +1301,14 @@ object: Parsed response object with top-level properties 'items' and 'next'. See
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
+<li>
+<h4><code><a title="autodesk_forge_sdk.oss.DataRetention" href="#autodesk_forge_sdk.oss.DataRetention">DataRetention</a></code></h4>
+<ul class="">
+<li><code><a title="autodesk_forge_sdk.oss.DataRetention.Persistent" href="#autodesk_forge_sdk.oss.DataRetention.Persistent">Persistent</a></code></li>
+<li><code><a title="autodesk_forge_sdk.oss.DataRetention.Temporary" href="#autodesk_forge_sdk.oss.DataRetention.Temporary">Temporary</a></code></li>
+<li><code><a title="autodesk_forge_sdk.oss.DataRetention.Transient" href="#autodesk_forge_sdk.oss.DataRetention.Transient">Transient</a></code></li>
+</ul>
+</li>
 <li>
 <h4><code><a title="autodesk_forge_sdk.oss.OSSClient" href="#autodesk_forge_sdk.oss.OSSClient">OSSClient</a></code></h4>
 <ul class="two-column">
