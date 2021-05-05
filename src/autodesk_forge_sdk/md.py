@@ -33,7 +33,7 @@ class ModelDerivativeClient(BaseOAuthClient):
     **Documentation**: https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http
     """
 
-    def __init__(self, token_provider, base_url=BASE_URL):
+    def __init__(self, token_provider: TokenProviderInterface(), base_url: str = BASE_URL):
         """
         Create new instance of the client.
 
@@ -43,7 +43,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         """
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
-    def get_formats(self):
+    def get_formats(self) -> dict:
         """
         Return an up-to-date list of Forge-supported translations, that you can use to identify
         which types of derivatives are supported for each source file type.
@@ -58,13 +58,13 @@ class ModelDerivativeClient(BaseOAuthClient):
             FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
             FORGE_CLIENT_SECRET = os.environ["FORGE_CLIENT_SECRET"]
             client = ModelDerivativeClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
-            formats = client.get_formats()
-            print(formats)
+            resp = client.get_formats()
+            print(resp.formats)
             ```
         """
         return self._get('/designdata/formats', []).json()
 
-    def submit_job(self, urn, output_formats, output_region, root_filename=None, workflow_id=None, workflow_attr=None, force=False):
+    def submit_job(self, urn: str, output_formats: list[dict], output_region: str, root_filename: str=None, workflow_id: str=None, workflow_attr: str=None, force: bool = False) -> dict:
         """
         Translate a design from one format to another format.
 
