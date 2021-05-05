@@ -1,6 +1,6 @@
 import base64
 from urllib.parse import quote
-from .auth import BaseOAuthClient, Scope
+from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = 'https://developer.api.autodesk.com/modelderivative/v2'
 WRITE_SCOPES = [Scope.DataCreate, Scope.DataWrite, Scope.DataRead]
@@ -32,7 +32,15 @@ class ModelDerivativeClient(BaseOAuthClient):
 
     **Documentation**: https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http
     """
+
     def __init__(self, token_provider, base_url=BASE_URL):
+        """
+        Create new instance of the client.
+
+        Args:
+            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            base_url (str, optional): Base URL for API calls.
+        """
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
     def get_formats(self):

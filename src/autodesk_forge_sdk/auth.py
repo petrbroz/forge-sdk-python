@@ -49,6 +49,12 @@ class AuthenticationClient(BaseClient):
     """
 
     def __init__(self, base_url=BASE_URL):
+        """
+        Create new instance of the client.
+
+        Args:
+            base_url (str, optional): Base URL for API calls.
+        """
         BaseClient.__init__(self, base_url)
 
     def authenticate(self, client_id, client_secret, scopes):
@@ -210,18 +216,55 @@ class AuthenticationClient(BaseClient):
         headers = { 'Authorization': 'Bearer {}'.format(access_token) }
         return self._get('/users/@me', headers=headers).json()
 
-class SimpleTokenProvider:
+class TokenProviderInterface:
+    def get_token(self, scopes):
+        """
+        Generates access token for given set of scopes.
+
+        Args:
+            scopes (list[Scope]): List of scopes that the generated access token should support.
+
+        Returns:
+            str: Access token.
+        """
+        pass
+
+class SimpleTokenProvider(TokenProviderInterface):
+    """
+    Simple implementation of `TokenProviderInterface` when you already have an access token that you want to use.
+    When using this approach, make sure that the hard-coded access token supports all the scopes that may be needed.
+    """
+
     def __init__(self, access_token):
+        """
+        Create new instance of the provider.
+
+        Args:
+            access_token (str): Token that will always be returned by `SimpleTokenProvider.get_token`.
+        """
         self.access_token = access_token
+
     def get_token(self, scopes):
         return self.access_token
 
-class OAuthTokenProvider:
+class OAuthTokenProvider(TokenProviderInterface):
+    """
+    Helper class that automatically generates (and caches) access tokens using specific app credentials.
+    """
+
     def __init__(self, client_id, client_secret):
+        """
+        Create new instance of the provider.
+
+        Args:
+            client_id (str): Application client ID.
+            client_secret (str): Application client secret.
+        """
         self.client_id = client_id
         self.client_secret = client_secret
         self.auth_client = AuthenticationClient()
         self.cache = {}
+
     def get_token(self, scopes):
         cache_key = '+'.join(map(lambda s: s.value, scopes))
         now = datetime.now()
@@ -235,6 +278,13 @@ class OAuthTokenProvider:
 
 class BaseOAuthClient(BaseClient):
     def __init__(self, token_provider, base_url):
+        """
+        Create new instance of the client.
+
+        Args:
+            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            base_url (str): Base URL for API calls.
+        """
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 

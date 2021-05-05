@@ -1,6 +1,6 @@
 from enum import Enum
 from urllib.parse import quote
-from .auth import BaseOAuthClient, Scope
+from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = 'https://developer.api.autodesk.com/oss/v2'
 READ_SCOPES = [Scope.BucketRead, Scope.DataRead]
@@ -38,7 +38,15 @@ class OSSClient(BaseOAuthClient):
 
     **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
     """
+
     def __init__(self, token_provider, base_url=BASE_URL):
+        """
+        Create new instance of the client.
+
+        Args:
+            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            base_url (str, optional): Base URL for API calls.
+        """
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
     def _get_paginated(self, url, scopes, params=None, headers=None):
