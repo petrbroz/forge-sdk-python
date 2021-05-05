@@ -39,7 +39,7 @@ class OSSClient(BaseOAuthClient):
     **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
     """
 
-    def __init__(self, token_provider, base_url=BASE_URL):
+    def __init__(self, token_provider: TokenProviderInterface(), base_url: str = BASE_URL):
         """
         Create new instance of the client.
 
@@ -68,7 +68,7 @@ class OSSClient(BaseOAuthClient):
         """
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
-    def _get_paginated(self, url, scopes, params=None, headers=None):
+    def _get_paginated(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None) -> list:
         items = []
         while url:
             json = self._get(url, scopes, params, headers).json()
@@ -79,7 +79,7 @@ class OSSClient(BaseOAuthClient):
                 url = None
         return items
 
-    def get_buckets(self, region=None, limit=None, start_at=None):
+    def get_buckets(self, region: str=None, limit: int=None, start_at: str=None) -> dict:
         """
         List buckets owned by the application, using pagination.
 
@@ -112,7 +112,7 @@ class OSSClient(BaseOAuthClient):
             params['startAt'] = start_at
         return self._get('/buckets', READ_SCOPES, params).json()
 
-    def get_all_buckets(self, region=None):
+    def get_all_buckets(self, region: str=None) -> list:
         """
         List all buckets owned by the application. Similar to `OSSClient.get_buckets` but returning all results without pagination.
 
@@ -138,7 +138,7 @@ class OSSClient(BaseOAuthClient):
             params['region'] = region
         return self._get_paginated('/buckets', READ_SCOPES, params)
 
-    def get_bucket_details(self, bucket_key):
+    def get_bucket_details(self, bucket_key: str) -> dict:
         """
         Get bucket details in JSON format if the caller is the owner of the bucket.
         A request by any other application will result in a response of 403 Forbidden.
@@ -160,7 +160,7 @@ class OSSClient(BaseOAuthClient):
         """
         return self._get('/buckets/{}/details'.format(quote(bucket_key)), READ_SCOPES).json()
 
-    def create_bucket(self, bucket_key, data_retention_policy, region):
+    def create_bucket(self, bucket_key: str, data_retention_policy: DataRetention, region: str) -> dict:
         """
         Create a bucket. Buckets are arbitrary spaces that are created by applications
         and are used to store objects for later retrieval. A bucket is owned by the application
@@ -197,7 +197,7 @@ class OSSClient(BaseOAuthClient):
         }
         return self._post('/buckets', WRITE_SCOPES, json=json, headers=headers).json()
 
-    def delete_bucket(self, bucket_key):
+    def delete_bucket(self, bucket_key: str):
         """
         Delete a bucket. The bucket must be owned by the application.
 
@@ -206,9 +206,9 @@ class OSSClient(BaseOAuthClient):
         Args:
             bucket_key (str): Name of the bucket to be deleted.
         """
-        return self._delete('/buckets/{}'.format(quote(bucket_key)), DELETE_SCOPES)
+        self._delete('/buckets/{}'.format(quote(bucket_key)), DELETE_SCOPES)
 
-    def get_objects(self, bucket_key, limit=None, begins_with=None, start_at=None):
+    def get_objects(self, bucket_key: str, limit: int=None, begins_with: str=None, start_at: str=None) -> dict:
         """
         List objects in bucket, using pagination. It is only available to the bucket creator.
 
@@ -243,7 +243,7 @@ class OSSClient(BaseOAuthClient):
             params['startAt'] = start_at
         return self._get('/buckets/{}/objects'.format(quote(bucket_key)), READ_SCOPES, params).json()
 
-    def get_all_objects(self, bucket_key, begins_with=None):
+    def get_all_objects(self, bucket_key: str, begins_with: str=None) -> list:
         """
         List all objects in bucket. Similar to `OSSClient.get_objects` but returning all results without pagination.
 
@@ -268,7 +268,7 @@ class OSSClient(BaseOAuthClient):
             params['beginsWith'] = begins_with
         return self._get_paginated('/buckets/{}/objects'.format(quote(bucket_key)), READ_SCOPES, params)
 
-    def get_object_details(self, bucket_key, object_key):
+    def get_object_details(self, bucket_key: str, object_key: str) -> dict:
         """
         Get object details in JSON format.
 
@@ -294,7 +294,7 @@ class OSSClient(BaseOAuthClient):
         url = '/buckets/{}/objects/{}'.format(quote(bucket_key), quote(object_key))
         return self._get(url, READ_SCOPES).json()
 
-    def upload_object(self, bucket_key, object_key, buff):
+    def upload_object(self, bucket_key: str, object_key: str, buff) -> list:
         """
         Upload an object. If the specified object name already exists in the bucket,
         the uploaded content will overwrite the existing content for the bucket name/object name combination.
@@ -326,7 +326,7 @@ class OSSClient(BaseOAuthClient):
         url = '/buckets/{}/objects/{}'.format(quote(bucket_key), quote(object_key))
         return self._put(url, WRITE_SCOPES, buff=buff).json()
 
-    def delete_object(self, bucket_key, object_key):
+    def delete_object(self, bucket_key: str, object_key: str):
         """
         Delete an object from bucket.
 
@@ -337,4 +337,4 @@ class OSSClient(BaseOAuthClient):
             object_key (str): Name of the object to be removed.
         """
         url = '/buckets/{}/objects/{}'.format(quote(bucket_key), quote(object_key))
-        return self._delete(url, DELETE_SCOPES)
+        self._delete(url, DELETE_SCOPES)
