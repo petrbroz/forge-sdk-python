@@ -1,6 +1,6 @@
 import base64
 from urllib.parse import quote
-from .auth import BaseOAuthClient, Scope, TokenProviderInterface
+from .auth import BaseOAuthClient, Scope, TokenProviderInterface, SimpleTokenProvider, OAuthTokenProvider
 
 BASE_URL = 'https://developer.api.autodesk.com/modelderivative/v2'
 WRITE_SCOPES = [Scope.DataCreate, Scope.DataWrite, Scope.DataRead]
@@ -38,8 +38,27 @@ class ModelDerivativeClient(BaseOAuthClient):
         Create new instance of the client.
 
         Args:
-            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            token_provider (autodesk_forge_sdk.auth.TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+
+                Use `autodesk_forge_sdk.auth.OAuthTokenProvider` if you have your app's client ID and client secret available,
+                `autodesk_forge_sdk.auth.SimpleTokenProvider` if you would like to use an existing access token instead,
+                or even your own implementation of the `autodesk_forge_sdk.auth.TokenProviderInterface` interface.
             base_url (str, optional): Base URL for API calls.
+
+        Examples:
+            ```
+            FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
+            FORGE_CLIENT_SECRET = os.environ["FORGE_CLIENT_SECRET"]
+            client1 = ModelDerivativeClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+
+            FORGE_ACCESS_TOKEN = os.environ["FORGE_ACCESS_TOKEN"]
+            client2 = ModelDerivativeClient(SimpleTokenProvider(FORGE_ACCESS_TOKEN))
+
+            class MyTokenProvider(autodesk_forge_sdk.auth.TokenProviderInterface):
+                def get_token(self, scopes):
+                    return "your own access token retrieved from wherever"
+            client3 = ModelDerivativeClient(MyTokenProvider())
+            ```
         """
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
