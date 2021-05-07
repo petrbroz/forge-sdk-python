@@ -2,7 +2,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-from autodesk_forge_sdk import AuthenticationClient, Scope, OAuthTokenProvider, SimpleTokenProvider
+from autodesk_forge_sdk import AuthenticationClient, Scope, get_authorization_url
+from autodesk_forge_sdk import OAuthTokenProvider, SimpleTokenProvider
 from autodesk_forge_sdk import OSSClient, ModelDerivativeClient, urnify
 
 FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
