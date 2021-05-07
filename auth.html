@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.2" />
 <title>autodesk_forge_sdk.auth API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="Clients for working with the Forge Authentication service." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,52 +22,140 @@
 <h1 class="title">Module <code>autodesk_forge_sdk.auth</code></h1>
 </header>
 <section id="section-intro">
+<p>Clients for working with the Forge Authentication service.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import requests
+<pre><code class="python">&#34;&#34;&#34;
+Clients for working with the Forge Authentication service.
+&#34;&#34;&#34;
+
 from enum import Enum
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from .base import BaseClient
 
-BASE_URL = &#39;https://developer.api.autodesk.com/authentication/v1&#39;
+BASE_URL = &#34;https://developer.api.autodesk.com/authentication/v1&#34;
+
 
 class Scope(Enum):
     &#34;&#34;&#34;
     Authentication scopes.
     &#34;&#34;&#34;
-    UserProfileRead = &#39;user-profile:read&#39;
-    &#34;&#34;&#34;The application will be able to read the end user’s profile data (not including associated products and services).&#34;&#34;&#34;
-    UserRead = &#39;user:read&#39;
-    &#34;&#34;&#34;The application will be able to read the end user’s profile data, including associated products and services.&#34;&#34;&#34;
-    UserWrite = &#39;user:write&#39;
-    &#34;&#34;&#34;The application will be able to create, update, and delete the end user’s profile data, including associated products and services.&#34;&#34;&#34;
-    ViewablesRead = &#39;viewables:read&#39;
-    &#34;&#34;&#34;The application will only be able to read the end user’s viewable data (e.g., PNG and SVF files) within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataRead = &#39;data:read&#39;
-    &#34;&#34;&#34;The application will be able to read all the end user’s data (viewable and non-viewable) within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataWrite = &#39;data:write&#39;
-    &#34;&#34;&#34;The application will be able to create, update, and delete data on behalf of the end user within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataCreate = &#39;data:create&#39;
-    &#34;&#34;&#34;The application will be able to create data on behalf of the end user within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataSearch = &#39;data:search&#39;
-    &#34;&#34;&#34;The application will be able to search the end user’s data within the Autodesk ecosystem.&#34;&#34;&#34;
-    BucketCreate = &#39;bucket:create&#39;
+    USER_PROFILE_READ = &#34;user-profile:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read the end user’s profile data
+    (not including associated products and services).
+    &#34;&#34;&#34;
+    USER_READ = &#34;user:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read the end user’s profile data,
+    including associated products and services.
+    &#34;&#34;&#34;
+    USER_WRITE = &#34;user:write&#34;
+    &#34;&#34;&#34;
+    The application will be able to create, update, and delete the end user’s profile data,
+    including associated products and services.
+    &#34;&#34;&#34;
+    VIEWABLES_READ = &#34;viewables:read&#34;
+    &#34;&#34;&#34;
+    The application will only be able to read the end user’s viewable data
+    (e.g., PNG and SVF files) within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_READ = &#34;data:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read all the end user’s data (viewable and non-viewable)
+    within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_WRITE = &#34;data:write&#34;
+    &#34;&#34;&#34;
+    The application will be able to create, update,
+    and delete data on behalf of the end user within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_CREATE = &#34;data:create&#34;
+    &#34;&#34;&#34;
+    The application will be able to create data on behalf of the end user
+    within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_SEARCH = &#34;data:search&#34;
+    &#34;&#34;&#34;
+    The application will be able to search the end user’s data
+    within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    BUCKET_CREATE = &#34;bucket:create&#34;
     &#34;&#34;&#34;The application will be able to create an OSS bucket it will own.&#34;&#34;&#34;
-    BucketRead = &#39;bucket:read&#39;
-    &#34;&#34;&#34;The application will be able to read the metadata and list contents for OSS buckets that it has access to.&#34;&#34;&#34;
-    BucketUpdate = &#39;bucket:update&#39;
-    &#34;&#34;&#34;The application will be able to set permissions and entitlements for OSS buckets that it has permission to modify.&#34;&#34;&#34;
-    BucketDelete = &#39;bucket:delete&#39;
+    BUCKET_READ = &#34;bucket:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read the metadata and list contents
+    for OSS buckets that it has access to.
+    &#34;&#34;&#34;
+    BUCKET_UPDATE = &#34;bucket:update&#34;
+    &#34;&#34;&#34;
+    The application will be able to set permissions and entitlements
+    for OSS buckets that it has permission to modify.
+    &#34;&#34;&#34;
+    BUCKET_DELETE = &#34;bucket:delete&#34;
     &#34;&#34;&#34;The application will be able to delete a bucket that it has permission to delete.&#34;&#34;&#34;
-    CodeAll = &#39;code:all&#39;
-    &#34;&#34;&#34;The application will be able to author and execute code on behalf of the end user (e.g., scripts processed by the Design Automation API).&#34;&#34;&#34;
-    AccountRead = &#39;account:read&#39;
-    &#34;&#34;&#34;For Product APIs, the application will be able to read the account data the end user has entitlements to.&#34;&#34;&#34;
-    AccountWrite = &#39;account:wriet&#39;
-    &#34;&#34;&#34;For Product APIs, the application will be able to update the account data the end user has entitlements to.&#34;&#34;&#34;
+    CODE_ALL = &#34;code:all&#34;
+    &#34;&#34;&#34;
+    The application will be able to author and execute code on behalf of the end user
+    (e.g., scripts processed by the Design Automation API).
+    &#34;&#34;&#34;
+    ACCOUNT_READ = &#34;account:read&#34;
+    &#34;&#34;&#34;
+    For Product APIs, the application will be able to read the account data
+    the end user has entitlements to.
+    &#34;&#34;&#34;
+    ACCOUNT_WRITE = &#34;account:write&#34;
+    &#34;&#34;&#34;
+    For Product APIs, the application will be able to update the account data
+    the end user has entitlements to.
+    &#34;&#34;&#34;
+
+
+def get_authorization_url(
+        client_id: str, response_type: str, redirect_uri: str,
+        scopes: list[Scope], state: str = None
+    ) -&gt; str:
+    &#34;&#34;&#34;
+    Generate a URL to redirect an end user to in order to acquire the user’s consent
+    for your app to access the specified resources.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET
+
+    Args:
+        client_id (str): Client ID of the app.
+        response_type (str): Must be either &#34;code&#34; for authorization code grant flow or &#34;token&#34;
+            for implicit grant flow.
+        redirect_uri (str): URL-encoded callback URL that the end user will be redirected to
+            after completing the authorization flow.
+        scopes (list[Scope]): List of required scopes.
+        state (str, optional): Payload containing arbitrary data that the authentication flow
+            will pass back verbatim in a state query parameter to the callback URL.
+
+    Returns:
+        str: Complete authorization URL.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        client = AuthenticationClient()
+        url = client.get_authorization_url(
+            FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.VIEWABLES_READ])
+        print(url)
+        ```
+    &#34;&#34;&#34;
+    url = &#39;https://developer.api.autodesk.com/authentication/v1/authorize&#39;
+    url = url + &#39;?client_id={}&#39;.format(quote(client_id))
+    url = url + &#39;&amp;response_type={}&#39;.format(response_type)
+    url = url + &#39;&amp;redirect_uri={}&#39;.format(quote(redirect_uri))
+    url = url + \
+        &#39;&amp;scope={}&#39;.format(quote(&#39; &#39;.join(map(lambda s: s.value, scopes))))
+    if state:
+        url += &#39;&amp;state={}&#39;.format(quote(state))
+    return url
+
 
 class AuthenticationClient(BaseClient):
     &#34;&#34;&#34;
@@ -76,7 +164,7 @@ class AuthenticationClient(BaseClient):
     **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, base_url: str=BASE_URL):
+    def __init__(self, base_url: str = BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -89,7 +177,8 @@ class AuthenticationClient(BaseClient):
         &#34;&#34;&#34;
         Generate a two-legged access token for specific set of scopes.
 
-        **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST
 
         Args:
             client_id (str): Client ID of the app.
@@ -97,14 +186,15 @@ class AuthenticationClient(BaseClient):
             scopes (list[Scope]): List of required scopes.
 
         Returns:
-            dict: Parsed response object with properties `access_token`, `token_type`, and `expires_in`.
+            dict: Parsed response object with properties `access_token`, `token_type`,
+            and `expires_in`.
 
         Examples:
             ```
             FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
             FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
             client = AuthenticationClient()
-            auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.ViewablesRead])
+            auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.VIEWABLES_READ])
             print(auth[&#34;access_token&#34;])
             ```
         &#34;&#34;&#34;
@@ -116,65 +206,37 @@ class AuthenticationClient(BaseClient):
         }
         return self._post(&#39;/authenticate&#39;, form=form).json()
 
-    def get_authorization_url(self, client_id: str, response_type: str, redirect_uri: str, scopes: list[Scope], state: str=None) -&gt; str:
-        &#34;&#34;&#34;
-        Generate a URL to redirect an end user to in order to acquire the user’s consent
-        for your app to access the specified resources.
-
-        **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET
-
-        Args:
-            client_id (str): Client ID of the app.
-            response_type (str): Must be either &#39;code&#39; for authorization code grant flow or &#39;token&#39; for implicit grant flow.
-            redirect_uri (str): URL-encoded callback URL that the end user will be redirected to after completing the authorization flow.
-            scopes (list[Scope]): List of required scopes.
-            state (str, optional): Payload containing arbitrary data that the authentication flow will pass back verbatim in a state query parameter to the callback URL.
-
-        Returns:
-            str: Complete authorization URL.
-
-        Examples:
-            ```
-            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
-            client = AuthenticationClient()
-            url = client.get_authorization_url(FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.ViewablesRead])
-            print(url)
-            ```
-        &#34;&#34;&#34;
-        url = &#39;https://developer.api.autodesk.com/authentication/v1/authorize&#39;
-        url = url + &#39;?client_id={}&#39;.format(quote(client_id))
-        url = url + &#39;&amp;response_type={}&#39;.format(response_type)
-        url = url + &#39;&amp;redirect_uri={}&#39;.format(quote(redirect_uri))
-        url = url + &#39;&amp;scope={}&#39;.format(quote(&#39; &#39;.join(map(lambda s: s.value, scopes))))
-        if state:
-            url += &#39;&amp;state={}&#39;.format(quote(state))
-        return url
-
     def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -&gt; dict:
         &#34;&#34;&#34;
-        Exchange an authorization code extracted from `get_authorization_url` callback for a three-legged access token.
-        This API will only be used when the &#39;Authorization Code&#39; grant type is being adopted.
+        Exchange an authorization code extracted from `get_authorization_url` callback
+        for a three-legged access token. This API will only be used when the &#39;Authorization Code&#39;
+        grant type is being adopted.
 
         **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/gettoken-POST
 
         Args:
             client_id (str): Client ID of the app.
             client_secret (str): Client secret of the app.
-            code (str): The authorization code captured from the code query parameter when the user is redirected back to the callback URL.
-            redirect_uri (str): Must match the redirect_uri parameter used in the `get_authorization_url`.
+            code (str): The authorization code captured from the code query parameter
+                when the user is redirected back to the callback URL.
+            redirect_uri (str): Must match the redirect_uri parameter
+                used in the `get_authorization_url`.
 
         Returns:
-            dict: Parsed response object with properties `token_type`, `access_token`, `refresh_token`, and `expires_in`.
+            dict: Parsed response object with properties `token_type`, `access_token`,
+                `refresh_token`, and `expires_in`.
 
         Examples:
             ```
             FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
             FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
             client = AuthenticationClient()
-            url = client.get_authorization_url(FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.ViewablesRead])
+            url = client.get_authorization_url(
+                FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.VIEWABLES_READ])
             # redirect the user to URL, and wait for callback to http://localhost:3000/callback
             code = &#39;...&#39; # extract &#39;code&#39; query parameter from the callback
-            auth = client.get_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &#34;http://localhost:3000/callback&#34;)
+            auth = client.get_token(
+                FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &#34;http://localhost:3000/callback&#34;)
             print(auth[&#34;access_token&#34;])
             ```
         &#34;&#34;&#34;
@@ -187,11 +249,13 @@ class AuthenticationClient(BaseClient):
         }
         return self._post(&#39;/gettoken&#39;, form=form).json()
 
-    def refresh_token(self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
+    def refresh_token(
+        self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
         &#34;&#34;&#34;
         Acquire a new access token by using the refresh token provided by `get_token`.
 
-        **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST
 
         Args:
             client_id (str): Client ID of the app.
@@ -200,7 +264,8 @@ class AuthenticationClient(BaseClient):
             scopes (list[str]): List of required scopes.
 
         Returns:
-            dict: Parsed response object with properties `token_type`, `access_token`, `refresh_token`, and `expires_in`.
+            dict: Parsed response object with properties `token_type`, `access_token`,
+                `refresh_token`, and `expires_in`.
 
         Examples:
             ```
@@ -208,7 +273,8 @@ class AuthenticationClient(BaseClient):
             FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
             refresh_token = &#39;...&#39; # retrieve the refresh token, for example, from cookies
             client = AuthenticationClient()
-            auth = client.refresh_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.ViewablesRead])
+            auth = client.refresh_token(
+                FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.VIEWABLES_READ])
             print(auth[&#34;access_token&#34;])
             ```
         &#34;&#34;&#34;
@@ -231,7 +297,8 @@ class AuthenticationClient(BaseClient):
             access_token (str): Token obtained via a three-legged OAuth flow.
 
         Returns:
-            dict: Parsed response object with properties `userId`, `userName`, `emaillId`, `firstName`, `lastName`, etc.
+            dict: Parsed response object with properties `userId`, `userName`, `emaillId`,
+                `firstName`, `lastName`, etc.
 
         Examples:
             ```
@@ -241,10 +308,15 @@ class AuthenticationClient(BaseClient):
             print(auth[&#34;userName&#34;])
             ```
         &#34;&#34;&#34;
-        headers = { &#39;Authorization&#39;: &#39;Bearer {}&#39;.format(access_token) }
+        headers = {&#39;Authorization&#39;: &#39;Bearer {}&#39;.format(access_token)}
         return self._get(&#39;/users/@me&#39;, headers=headers).json()
 
+
 class TokenProviderInterface:
+    &#34;&#34;&#34;
+    Interface for any class that can provide access tokens to API clients
+    based on a set of OAuth scopes.
+    &#34;&#34;&#34;
     def get_token(self, scopes: list[Scope]) -&gt; str:
         &#34;&#34;&#34;
         Generates access token for given set of scopes.
@@ -255,12 +327,14 @@ class TokenProviderInterface:
         Returns:
             str: Access token.
         &#34;&#34;&#34;
-        pass
+        raise NotImplementedError()
+
 
 class SimpleTokenProvider(TokenProviderInterface):
     &#34;&#34;&#34;
-    Simple implementation of `TokenProviderInterface` when you already have an access token that you want to use.
-    When using this approach, make sure that the hard-coded access token supports all the scopes that may be needed.
+    Simple implementation of `TokenProviderInterface` when you already have an access token
+    that you want to use. When using this approach, make sure that the hard-coded access token
+    supports all the scopes that may be needed.
     &#34;&#34;&#34;
 
     def __init__(self, access_token: str):
@@ -268,16 +342,19 @@ class SimpleTokenProvider(TokenProviderInterface):
         Create new instance of the provider.
 
         Args:
-            access_token (str): Token that will always be returned by `SimpleTokenProvider.get_token`.
+            access_token (str): Token that will always be returned by
+                `SimpleTokenProvider.get_token`.
         &#34;&#34;&#34;
         self.access_token = access_token
 
     def get_token(self, scopes: list[Scope]) -&gt; str:
         return self.access_token
 
+
 class OAuthTokenProvider(TokenProviderInterface):
     &#34;&#34;&#34;
-    Helper class that automatically generates (and caches) access tokens using specific app credentials.
+    Helper class that automatically generates (and caches) access tokens
+    using specific app credentials.
     &#34;&#34;&#34;
 
     def __init__(self, client_id: str, client_secret: str):
@@ -294,56 +371,70 @@ class OAuthTokenProvider(TokenProviderInterface):
         self.cache = {}
 
     def get_token(self, scopes: list[Scope]) -&gt; str:
-        cache_key = &#39;+&#39;.join(map(lambda s: s.value, scopes))
+        cache_key = &#34;+&#34;.join(map(lambda s: s.value, scopes))
         now = datetime.now()
         if cache_key in self.cache:
             auth = self.cache[cache_key]
-            if auth[&#39;expires_at&#39;] &gt; now:
+            if auth[&#34;expires_at&#34;] &gt; now:
                 return auth
-        auth = self.auth_client.authenticate(self.client_id, self.client_secret, scopes)
-        auth[&#39;expires_at&#39;] = now + timedelta(0, auth[&#39;expires_in&#39;])
+        auth = self.auth_client.authenticate(
+            self.client_id, self.client_secret, scopes)
+        auth[&#34;expires_at&#34;] = now + timedelta(0, auth[&#34;expires_in&#34;])
         return auth
 
+
 class BaseOAuthClient(BaseClient):
+    &#34;&#34;&#34;
+    Base class for API clients with authentication based on OAuth 2.0.
+    &#34;&#34;&#34;
     def __init__(self, token_provider: TokenProviderInterface, base_url: str):
         &#34;&#34;&#34;
         Create new instance of the client.
 
         Args:
-            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            token_provider (TokenProviderInterface): Provider that will be used
+                to generate access tokens for API calls.
             base_url (str): Base URL for API calls.
         &#34;&#34;&#34;
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
-    def _get(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._get(self, url, params, headers)
+    def _get(self, url: str, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._get(self, url, **kwargs)
 
-    def _post(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._post(self, url, form, json, buff, params, headers)
+    def _post(self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._post(self, url, form, json, buff, **kwargs)
 
-    def _put(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._put(self, url, form, json, buff, params, headers)
+    def _put(self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._put(self, url, form, json, buff, **kwargs)
 
-    def _delete(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._delete(self, url, params, headers)
+    def _delete(self, url: str, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._delete(self, url, **kwargs)
 
     def _set_auth_headers(self, headers: dict, scopes: list[Scope]):
-        if not &#39;Authorization&#39; in headers:
+        if &#34;Authorization&#34; not in headers:
             auth = self.token_provider.get_token(scopes)
-            headers[&#39;Authorization&#39;] = &#39;Bearer {}&#39;.format(auth[&#39;access_token&#39;])</code></pre>
+            headers[&#34;Authorization&#34;] = &#34;Bearer {}&#34;.format(auth[&#34;access_token&#34;])</code></pre>
 </details>
 </section>
 <section>
@@ -351,6 +442,91 @@ class BaseOAuthClient(BaseClient):
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="autodesk_forge_sdk.auth.get_authorization_url"><code class="name flex">
+<span>def <span class="ident">get_authorization_url</span></span>(<span>client_id: str, response_type: str, redirect_uri: str, scopes: list, state: str = None) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generate a URL to redirect an end user to in order to acquire the user’s consent
+for your app to access the specified resources.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET">https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>client_id</code></strong> :&ensp;<code>str</code></dt>
+<dd>Client ID of the app.</dd>
+<dt><strong><code>response_type</code></strong> :&ensp;<code>str</code></dt>
+<dd>Must be either "code" for authorization code grant flow or "token"
+for implicit grant flow.</dd>
+<dt><strong><code>redirect_uri</code></strong> :&ensp;<code>str</code></dt>
+<dd>URL-encoded callback URL that the end user will be redirected to
+after completing the authorization flow.</dd>
+<dt><strong><code>scopes</code></strong> :&ensp;<code>list[<a title="autodesk_forge_sdk.auth.Scope" href="#autodesk_forge_sdk.auth.Scope">Scope</a>]</code></dt>
+<dd>List of required scopes.</dd>
+<dt><strong><code>state</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Payload containing arbitrary data that the authentication flow
+will pass back verbatim in a state query parameter to the callback URL.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>str</code></dt>
+<dd>Complete authorization URL.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
+client = AuthenticationClient()
+url = client.get_authorization_url(
+    FORGE_CLIENT_ID, &quot;code&quot;, &quot;http://localhost:3000/callback&quot;, [Scope.VIEWABLES_READ])
+print(url)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_authorization_url(
+        client_id: str, response_type: str, redirect_uri: str,
+        scopes: list[Scope], state: str = None
+    ) -&gt; str:
+    &#34;&#34;&#34;
+    Generate a URL to redirect an end user to in order to acquire the user’s consent
+    for your app to access the specified resources.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET
+
+    Args:
+        client_id (str): Client ID of the app.
+        response_type (str): Must be either &#34;code&#34; for authorization code grant flow or &#34;token&#34;
+            for implicit grant flow.
+        redirect_uri (str): URL-encoded callback URL that the end user will be redirected to
+            after completing the authorization flow.
+        scopes (list[Scope]): List of required scopes.
+        state (str, optional): Payload containing arbitrary data that the authentication flow
+            will pass back verbatim in a state query parameter to the callback URL.
+
+    Returns:
+        str: Complete authorization URL.
+
+    Examples:
+        ```
+        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
+        client = AuthenticationClient()
+        url = client.get_authorization_url(
+            FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.VIEWABLES_READ])
+        print(url)
+        ```
+    &#34;&#34;&#34;
+    url = &#39;https://developer.api.autodesk.com/authentication/v1/authorize&#39;
+    url = url + &#39;?client_id={}&#39;.format(quote(client_id))
+    url = url + &#39;&amp;response_type={}&#39;.format(response_type)
+    url = url + &#39;&amp;redirect_uri={}&#39;.format(quote(redirect_uri))
+    url = url + \
+        &#39;&amp;scope={}&#39;.format(quote(&#39; &#39;.join(map(lambda s: s.value, scopes))))
+    if state:
+        url += &#39;&amp;state={}&#39;.format(quote(state))
+    return url</code></pre>
+</details>
+</dd>
+</dl>
 </section>
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
@@ -379,7 +555,7 @@ class BaseOAuthClient(BaseClient):
     **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, base_url: str=BASE_URL):
+    def __init__(self, base_url: str = BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -392,7 +568,8 @@ class BaseOAuthClient(BaseClient):
         &#34;&#34;&#34;
         Generate a two-legged access token for specific set of scopes.
 
-        **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST
 
         Args:
             client_id (str): Client ID of the app.
@@ -400,14 +577,15 @@ class BaseOAuthClient(BaseClient):
             scopes (list[Scope]): List of required scopes.
 
         Returns:
-            dict: Parsed response object with properties `access_token`, `token_type`, and `expires_in`.
+            dict: Parsed response object with properties `access_token`, `token_type`,
+            and `expires_in`.
 
         Examples:
             ```
             FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
             FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
             client = AuthenticationClient()
-            auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.ViewablesRead])
+            auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.VIEWABLES_READ])
             print(auth[&#34;access_token&#34;])
             ```
         &#34;&#34;&#34;
@@ -419,65 +597,37 @@ class BaseOAuthClient(BaseClient):
         }
         return self._post(&#39;/authenticate&#39;, form=form).json()
 
-    def get_authorization_url(self, client_id: str, response_type: str, redirect_uri: str, scopes: list[Scope], state: str=None) -&gt; str:
-        &#34;&#34;&#34;
-        Generate a URL to redirect an end user to in order to acquire the user’s consent
-        for your app to access the specified resources.
-
-        **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET
-
-        Args:
-            client_id (str): Client ID of the app.
-            response_type (str): Must be either &#39;code&#39; for authorization code grant flow or &#39;token&#39; for implicit grant flow.
-            redirect_uri (str): URL-encoded callback URL that the end user will be redirected to after completing the authorization flow.
-            scopes (list[Scope]): List of required scopes.
-            state (str, optional): Payload containing arbitrary data that the authentication flow will pass back verbatim in a state query parameter to the callback URL.
-
-        Returns:
-            str: Complete authorization URL.
-
-        Examples:
-            ```
-            FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
-            client = AuthenticationClient()
-            url = client.get_authorization_url(FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.ViewablesRead])
-            print(url)
-            ```
-        &#34;&#34;&#34;
-        url = &#39;https://developer.api.autodesk.com/authentication/v1/authorize&#39;
-        url = url + &#39;?client_id={}&#39;.format(quote(client_id))
-        url = url + &#39;&amp;response_type={}&#39;.format(response_type)
-        url = url + &#39;&amp;redirect_uri={}&#39;.format(quote(redirect_uri))
-        url = url + &#39;&amp;scope={}&#39;.format(quote(&#39; &#39;.join(map(lambda s: s.value, scopes))))
-        if state:
-            url += &#39;&amp;state={}&#39;.format(quote(state))
-        return url
-
     def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -&gt; dict:
         &#34;&#34;&#34;
-        Exchange an authorization code extracted from `get_authorization_url` callback for a three-legged access token.
-        This API will only be used when the &#39;Authorization Code&#39; grant type is being adopted.
+        Exchange an authorization code extracted from `get_authorization_url` callback
+        for a three-legged access token. This API will only be used when the &#39;Authorization Code&#39;
+        grant type is being adopted.
 
         **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/gettoken-POST
 
         Args:
             client_id (str): Client ID of the app.
             client_secret (str): Client secret of the app.
-            code (str): The authorization code captured from the code query parameter when the user is redirected back to the callback URL.
-            redirect_uri (str): Must match the redirect_uri parameter used in the `get_authorization_url`.
+            code (str): The authorization code captured from the code query parameter
+                when the user is redirected back to the callback URL.
+            redirect_uri (str): Must match the redirect_uri parameter
+                used in the `get_authorization_url`.
 
         Returns:
-            dict: Parsed response object with properties `token_type`, `access_token`, `refresh_token`, and `expires_in`.
+            dict: Parsed response object with properties `token_type`, `access_token`,
+                `refresh_token`, and `expires_in`.
 
         Examples:
             ```
             FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
             FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
             client = AuthenticationClient()
-            url = client.get_authorization_url(FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.ViewablesRead])
+            url = client.get_authorization_url(
+                FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.VIEWABLES_READ])
             # redirect the user to URL, and wait for callback to http://localhost:3000/callback
             code = &#39;...&#39; # extract &#39;code&#39; query parameter from the callback
-            auth = client.get_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &#34;http://localhost:3000/callback&#34;)
+            auth = client.get_token(
+                FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &#34;http://localhost:3000/callback&#34;)
             print(auth[&#34;access_token&#34;])
             ```
         &#34;&#34;&#34;
@@ -490,11 +640,13 @@ class BaseOAuthClient(BaseClient):
         }
         return self._post(&#39;/gettoken&#39;, form=form).json()
 
-    def refresh_token(self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
+    def refresh_token(
+        self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
         &#34;&#34;&#34;
         Acquire a new access token by using the refresh token provided by `get_token`.
 
-        **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST
 
         Args:
             client_id (str): Client ID of the app.
@@ -503,7 +655,8 @@ class BaseOAuthClient(BaseClient):
             scopes (list[str]): List of required scopes.
 
         Returns:
-            dict: Parsed response object with properties `token_type`, `access_token`, `refresh_token`, and `expires_in`.
+            dict: Parsed response object with properties `token_type`, `access_token`,
+                `refresh_token`, and `expires_in`.
 
         Examples:
             ```
@@ -511,7 +664,8 @@ class BaseOAuthClient(BaseClient):
             FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
             refresh_token = &#39;...&#39; # retrieve the refresh token, for example, from cookies
             client = AuthenticationClient()
-            auth = client.refresh_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.ViewablesRead])
+            auth = client.refresh_token(
+                FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.VIEWABLES_READ])
             print(auth[&#34;access_token&#34;])
             ```
         &#34;&#34;&#34;
@@ -534,7 +688,8 @@ class BaseOAuthClient(BaseClient):
             access_token (str): Token obtained via a three-legged OAuth flow.
 
         Returns:
-            dict: Parsed response object with properties `userId`, `userName`, `emaillId`, `firstName`, `lastName`, etc.
+            dict: Parsed response object with properties `userId`, `userName`, `emaillId`,
+                `firstName`, `lastName`, etc.
 
         Examples:
             ```
@@ -544,7 +699,7 @@ class BaseOAuthClient(BaseClient):
             print(auth[&#34;userName&#34;])
             ```
         &#34;&#34;&#34;
-        headers = { &#39;Authorization&#39;: &#39;Bearer {}&#39;.format(access_token) }
+        headers = {&#39;Authorization&#39;: &#39;Bearer {}&#39;.format(access_token)}
         return self._get(&#39;/users/@me&#39;, headers=headers).json()</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -558,7 +713,8 @@ class BaseOAuthClient(BaseClient):
 </code></dt>
 <dd>
 <div class="desc"><p>Generate a two-legged access token for specific set of scopes.</p>
-<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST">https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST</a></p>
+<p><strong>Documentation</strong>:
+<a href="https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST">https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST</a></p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>client_id</code></strong> :&ensp;<code>str</code></dt>
@@ -571,13 +727,14 @@ class BaseOAuthClient(BaseClient):
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>dict</code></dt>
-<dd>Parsed response object with properties <code>access_token</code>, <code>token_type</code>, and <code>expires_in</code>.</dd>
+<dd>Parsed response object with properties <code>access_token</code>, <code>token_type</code>,</dd>
 </dl>
+<p>and <code>expires_in</code>.</p>
 <h2 id="examples">Examples</h2>
 <pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
 FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
 client = AuthenticationClient()
-auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.ViewablesRead])
+auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.VIEWABLES_READ])
 print(auth[&quot;access_token&quot;])
 </code></pre></div>
 <details class="source">
@@ -588,7 +745,8 @@ print(auth[&quot;access_token&quot;])
     &#34;&#34;&#34;
     Generate a two-legged access token for specific set of scopes.
 
-    **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST
+    **Documentation**:
+        https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authenticate-POST
 
     Args:
         client_id (str): Client ID of the app.
@@ -596,14 +754,15 @@ print(auth[&quot;access_token&quot;])
         scopes (list[Scope]): List of required scopes.
 
     Returns:
-        dict: Parsed response object with properties `access_token`, `token_type`, and `expires_in`.
+        dict: Parsed response object with properties `access_token`, `token_type`,
+        and `expires_in`.
 
     Examples:
         ```
         FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
         FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
         client = AuthenticationClient()
-        auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.ViewablesRead])
+        auth = client.authenticate(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, [Scope.VIEWABLES_READ])
         print(auth[&#34;access_token&#34;])
         ```
     &#34;&#34;&#34;
@@ -616,82 +775,13 @@ print(auth[&quot;access_token&quot;])
     return self._post(&#39;/authenticate&#39;, form=form).json()</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.auth.AuthenticationClient.get_authorization_url"><code class="name flex">
-<span>def <span class="ident">get_authorization_url</span></span>(<span>self, client_id: str, response_type: str, redirect_uri: str, scopes: list, state: str = None) ‑> str</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Generate a URL to redirect an end user to in order to acquire the user’s consent
-for your app to access the specified resources.</p>
-<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET">https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET</a></p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>client_id</code></strong> :&ensp;<code>str</code></dt>
-<dd>Client ID of the app.</dd>
-<dt><strong><code>response_type</code></strong> :&ensp;<code>str</code></dt>
-<dd>Must be either 'code' for authorization code grant flow or 'token' for implicit grant flow.</dd>
-<dt><strong><code>redirect_uri</code></strong> :&ensp;<code>str</code></dt>
-<dd>URL-encoded callback URL that the end user will be redirected to after completing the authorization flow.</dd>
-<dt><strong><code>scopes</code></strong> :&ensp;<code>list[<a title="autodesk_forge_sdk.auth.Scope" href="#autodesk_forge_sdk.auth.Scope">Scope</a>]</code></dt>
-<dd>List of required scopes.</dd>
-<dt><strong><code>state</code></strong> :&ensp;<code>str</code>, optional</dt>
-<dd>Payload containing arbitrary data that the authentication flow will pass back verbatim in a state query parameter to the callback URL.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>str</code></dt>
-<dd>Complete authorization URL.</dd>
-</dl>
-<h2 id="examples">Examples</h2>
-<pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
-client = AuthenticationClient()
-url = client.get_authorization_url(FORGE_CLIENT_ID, &quot;code&quot;, &quot;http://localhost:3000/callback&quot;, [Scope.ViewablesRead])
-print(url)
-</code></pre></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_authorization_url(self, client_id: str, response_type: str, redirect_uri: str, scopes: list[Scope], state: str=None) -&gt; str:
-    &#34;&#34;&#34;
-    Generate a URL to redirect an end user to in order to acquire the user’s consent
-    for your app to access the specified resources.
-
-    **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/authorize-GET
-
-    Args:
-        client_id (str): Client ID of the app.
-        response_type (str): Must be either &#39;code&#39; for authorization code grant flow or &#39;token&#39; for implicit grant flow.
-        redirect_uri (str): URL-encoded callback URL that the end user will be redirected to after completing the authorization flow.
-        scopes (list[Scope]): List of required scopes.
-        state (str, optional): Payload containing arbitrary data that the authentication flow will pass back verbatim in a state query parameter to the callback URL.
-
-    Returns:
-        str: Complete authorization URL.
-
-    Examples:
-        ```
-        FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
-        client = AuthenticationClient()
-        url = client.get_authorization_url(FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.ViewablesRead])
-        print(url)
-        ```
-    &#34;&#34;&#34;
-    url = &#39;https://developer.api.autodesk.com/authentication/v1/authorize&#39;
-    url = url + &#39;?client_id={}&#39;.format(quote(client_id))
-    url = url + &#39;&amp;response_type={}&#39;.format(response_type)
-    url = url + &#39;&amp;redirect_uri={}&#39;.format(quote(redirect_uri))
-    url = url + &#39;&amp;scope={}&#39;.format(quote(&#39; &#39;.join(map(lambda s: s.value, scopes))))
-    if state:
-        url += &#39;&amp;state={}&#39;.format(quote(state))
-    return url</code></pre>
-</details>
-</dd>
 <dt id="autodesk_forge_sdk.auth.AuthenticationClient.get_token"><code class="name flex">
 <span>def <span class="ident">get_token</span></span>(<span>self, client_id: str, client_secret: str, code: str, redirect_uri: str) ‑> dict</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Exchange an authorization code extracted from <code>get_authorization_url</code> callback for a three-legged access token.
-This API will only be used when the 'Authorization Code' grant type is being adopted.</p>
+<div class="desc"><p>Exchange an authorization code extracted from <code><a title="autodesk_forge_sdk.auth.get_authorization_url" href="#autodesk_forge_sdk.auth.get_authorization_url">get_authorization_url()</a></code> callback
+for a three-legged access token. This API will only be used when the 'Authorization Code'
+grant type is being adopted.</p>
 <p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/oauth/v2/reference/http/gettoken-POST">https://forge.autodesk.com/en/docs/oauth/v2/reference/http/gettoken-POST</a></p>
 <h2 id="args">Args</h2>
 <dl>
@@ -700,23 +790,28 @@ This API will only be used when the 'Authorization Code' grant type is being ado
 <dt><strong><code>client_secret</code></strong> :&ensp;<code>str</code></dt>
 <dd>Client secret of the app.</dd>
 <dt><strong><code>code</code></strong> :&ensp;<code>str</code></dt>
-<dd>The authorization code captured from the code query parameter when the user is redirected back to the callback URL.</dd>
+<dd>The authorization code captured from the code query parameter
+when the user is redirected back to the callback URL.</dd>
 <dt><strong><code>redirect_uri</code></strong> :&ensp;<code>str</code></dt>
-<dd>Must match the redirect_uri parameter used in the <code>get_authorization_url</code>.</dd>
+<dd>Must match the redirect_uri parameter
+used in the <code><a title="autodesk_forge_sdk.auth.get_authorization_url" href="#autodesk_forge_sdk.auth.get_authorization_url">get_authorization_url()</a></code>.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>dict</code></dt>
-<dd>Parsed response object with properties <code>token_type</code>, <code>access_token</code>, <code>refresh_token</code>, and <code>expires_in</code>.</dd>
+<dd>Parsed response object with properties <code>token_type</code>, <code>access_token</code>,
+<code>refresh_token</code>, and <code>expires_in</code>.</dd>
 </dl>
 <h2 id="examples">Examples</h2>
 <pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
 FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
 client = AuthenticationClient()
-url = client.get_authorization_url(FORGE_CLIENT_ID, &quot;code&quot;, &quot;http://localhost:3000/callback&quot;, [Scope.ViewablesRead])
+url = client.get_authorization_url(
+    FORGE_CLIENT_ID, &quot;code&quot;, &quot;http://localhost:3000/callback&quot;, [Scope.VIEWABLES_READ])
 # redirect the user to URL, and wait for callback to &lt;http://localhost:3000/callback&gt;
 code = '...' # extract 'code' query parameter from the callback
-auth = client.get_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &quot;http://localhost:3000/callback&quot;)
+auth = client.get_token(
+    FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &quot;http://localhost:3000/callback&quot;)
 print(auth[&quot;access_token&quot;])
 </code></pre></div>
 <details class="source">
@@ -725,29 +820,35 @@ print(auth[&quot;access_token&quot;])
 </summary>
 <pre><code class="python">def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -&gt; dict:
     &#34;&#34;&#34;
-    Exchange an authorization code extracted from `get_authorization_url` callback for a three-legged access token.
-    This API will only be used when the &#39;Authorization Code&#39; grant type is being adopted.
+    Exchange an authorization code extracted from `get_authorization_url` callback
+    for a three-legged access token. This API will only be used when the &#39;Authorization Code&#39;
+    grant type is being adopted.
 
     **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/gettoken-POST
 
     Args:
         client_id (str): Client ID of the app.
         client_secret (str): Client secret of the app.
-        code (str): The authorization code captured from the code query parameter when the user is redirected back to the callback URL.
-        redirect_uri (str): Must match the redirect_uri parameter used in the `get_authorization_url`.
+        code (str): The authorization code captured from the code query parameter
+            when the user is redirected back to the callback URL.
+        redirect_uri (str): Must match the redirect_uri parameter
+            used in the `get_authorization_url`.
 
     Returns:
-        dict: Parsed response object with properties `token_type`, `access_token`, `refresh_token`, and `expires_in`.
+        dict: Parsed response object with properties `token_type`, `access_token`,
+            `refresh_token`, and `expires_in`.
 
     Examples:
         ```
         FORGE_CLIENT_ID = os.environ[&#34;FORGE_CLIENT_ID&#34;]
         FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
         client = AuthenticationClient()
-        url = client.get_authorization_url(FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.ViewablesRead])
+        url = client.get_authorization_url(
+            FORGE_CLIENT_ID, &#34;code&#34;, &#34;http://localhost:3000/callback&#34;, [Scope.VIEWABLES_READ])
         # redirect the user to URL, and wait for callback to http://localhost:3000/callback
         code = &#39;...&#39; # extract &#39;code&#39; query parameter from the callback
-        auth = client.get_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &#34;http://localhost:3000/callback&#34;)
+        auth = client.get_token(
+            FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, code, &#34;http://localhost:3000/callback&#34;)
         print(auth[&#34;access_token&#34;])
         ```
     &#34;&#34;&#34;
@@ -775,7 +876,8 @@ print(auth[&quot;access_token&quot;])
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>dict</code></dt>
-<dd>Parsed response object with properties <code>userId</code>, <code>userName</code>, <code>emaillId</code>, <code>firstName</code>, <code>lastName</code>, etc.</dd>
+<dd>Parsed response object with properties <code>userId</code>, <code>userName</code>, <code>emaillId</code>,
+<code>firstName</code>, <code>lastName</code>, etc.</dd>
 </dl>
 <h2 id="examples">Examples</h2>
 <pre><code>access_token = '...' # get a three-legged access token, for example, from cookies
@@ -797,7 +899,8 @@ print(auth[&quot;userName&quot;])
         access_token (str): Token obtained via a three-legged OAuth flow.
 
     Returns:
-        dict: Parsed response object with properties `userId`, `userName`, `emaillId`, `firstName`, `lastName`, etc.
+        dict: Parsed response object with properties `userId`, `userName`, `emaillId`,
+            `firstName`, `lastName`, etc.
 
     Examples:
         ```
@@ -807,7 +910,7 @@ print(auth[&quot;userName&quot;])
         print(auth[&#34;userName&#34;])
         ```
     &#34;&#34;&#34;
-    headers = { &#39;Authorization&#39;: &#39;Bearer {}&#39;.format(access_token) }
+    headers = {&#39;Authorization&#39;: &#39;Bearer {}&#39;.format(access_token)}
     return self._get(&#39;/users/@me&#39;, headers=headers).json()</code></pre>
 </details>
 </dd>
@@ -816,7 +919,8 @@ print(auth[&quot;userName&quot;])
 </code></dt>
 <dd>
 <div class="desc"><p>Acquire a new access token by using the refresh token provided by <code>get_token</code>.</p>
-<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST">https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST</a></p>
+<p><strong>Documentation</strong>:
+<a href="https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST">https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST</a></p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>client_id</code></strong> :&ensp;<code>str</code></dt>
@@ -831,25 +935,29 @@ print(auth[&quot;userName&quot;])
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>dict</code></dt>
-<dd>Parsed response object with properties <code>token_type</code>, <code>access_token</code>, <code>refresh_token</code>, and <code>expires_in</code>.</dd>
+<dd>Parsed response object with properties <code>token_type</code>, <code>access_token</code>,
+<code>refresh_token</code>, and <code>expires_in</code>.</dd>
 </dl>
 <h2 id="examples">Examples</h2>
 <pre><code>FORGE_CLIENT_ID = os.environ[&quot;FORGE_CLIENT_ID&quot;]
 FORGE_CLIENT_SECRET = os.environ[&quot;FORGE_CLIENT_SECRET&quot;]
 refresh_token = '...' # retrieve the refresh token, for example, from cookies
 client = AuthenticationClient()
-auth = client.refresh_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.ViewablesRead])
+auth = client.refresh_token(
+    FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.VIEWABLES_READ])
 print(auth[&quot;access_token&quot;])
 </code></pre></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def refresh_token(self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
+<pre><code class="python">def refresh_token(
+    self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -&gt; dict:
     &#34;&#34;&#34;
     Acquire a new access token by using the refresh token provided by `get_token`.
 
-    **Documentation**: https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST
+    **Documentation**:
+        https://forge.autodesk.com/en/docs/oauth/v2/reference/http/refreshtoken-POST
 
     Args:
         client_id (str): Client ID of the app.
@@ -858,7 +966,8 @@ print(auth[&quot;access_token&quot;])
         scopes (list[str]): List of required scopes.
 
     Returns:
-        dict: Parsed response object with properties `token_type`, `access_token`, `refresh_token`, and `expires_in`.
+        dict: Parsed response object with properties `token_type`, `access_token`,
+            `refresh_token`, and `expires_in`.
 
     Examples:
         ```
@@ -866,7 +975,8 @@ print(auth[&quot;access_token&quot;])
         FORGE_CLIENT_SECRET = os.environ[&#34;FORGE_CLIENT_SECRET&#34;]
         refresh_token = &#39;...&#39; # retrieve the refresh token, for example, from cookies
         client = AuthenticationClient()
-        auth = client.refresh_token(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.ViewablesRead])
+        auth = client.refresh_token(
+            FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, refresh_token, [Scope.VIEWABLES_READ])
         print(auth[&#34;access_token&#34;])
         ```
     &#34;&#34;&#34;
@@ -887,11 +997,13 @@ print(auth[&quot;access_token&quot;])
 <span>(</span><span>token_provider: <a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a>, base_url: str)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Create new instance of the client.</p>
+<div class="desc"><p>Base class for API clients with authentication based on OAuth 2.0.</p>
+<p>Create new instance of the client.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>token_provider</code></strong> :&ensp;<code><a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a></code></dt>
-<dd>Provider that will be used to generate access tokens for API calls.</dd>
+<dd>Provider that will be used
+to generate access tokens for API calls.</dd>
 <dt><strong><code>base_url</code></strong> :&ensp;<code>str</code></dt>
 <dd>Base URL for API calls.</dd>
 </dl></div>
@@ -900,45 +1012,57 @@ print(auth[&quot;access_token&quot;])
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class BaseOAuthClient(BaseClient):
+    &#34;&#34;&#34;
+    Base class for API clients with authentication based on OAuth 2.0.
+    &#34;&#34;&#34;
     def __init__(self, token_provider: TokenProviderInterface, base_url: str):
         &#34;&#34;&#34;
         Create new instance of the client.
 
         Args:
-            token_provider (TokenProviderInterface): Provider that will be used to generate access tokens for API calls.
+            token_provider (TokenProviderInterface): Provider that will be used
+                to generate access tokens for API calls.
             base_url (str): Base URL for API calls.
         &#34;&#34;&#34;
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
-    def _get(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._get(self, url, params, headers)
+    def _get(self, url: str, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._get(self, url, **kwargs)
 
-    def _post(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._post(self, url, form, json, buff, params, headers)
+    def _post(self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._post(self, url, form, json, buff, **kwargs)
 
-    def _put(self, url: str, scopes: list[Scope], form: dict=None, json: dict=None, buff=None, params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._put(self, url, form, json, buff, params, headers)
+    def _put(self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._put(self, url, form, json, buff, **kwargs)
 
-    def _delete(self, url: str, scopes: list[Scope], params: dict=None, headers: dict=None):
-        if not headers:
-            headers = {}
-        self._set_auth_headers(headers, scopes)
-        return BaseClient._delete(self, url, params, headers)
+    def _delete(self, url: str, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._delete(self, url, **kwargs)
 
     def _set_auth_headers(self, headers: dict, scopes: list[Scope]):
-        if not &#39;Authorization&#39; in headers:
+        if &#34;Authorization&#34; not in headers:
             auth = self.token_provider.get_token(scopes)
-            headers[&#39;Authorization&#39;] = &#39;Bearer {}&#39;.format(auth[&#39;access_token&#39;])</code></pre>
+            headers[&#34;Authorization&#34;] = &#34;Bearer {}&#34;.format(auth[&#34;access_token&#34;])</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -955,7 +1079,8 @@ print(auth[&quot;access_token&quot;])
 <span>(</span><span>client_id: str, client_secret: str)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Helper class that automatically generates (and caches) access tokens using specific app credentials.</p>
+<div class="desc"><p>Helper class that automatically generates (and caches) access tokens
+using specific app credentials.</p>
 <p>Create new instance of the provider.</p>
 <h2 id="args">Args</h2>
 <dl>
@@ -970,7 +1095,8 @@ print(auth[&quot;access_token&quot;])
 </summary>
 <pre><code class="python">class OAuthTokenProvider(TokenProviderInterface):
     &#34;&#34;&#34;
-    Helper class that automatically generates (and caches) access tokens using specific app credentials.
+    Helper class that automatically generates (and caches) access tokens
+    using specific app credentials.
     &#34;&#34;&#34;
 
     def __init__(self, client_id: str, client_secret: str):
@@ -987,14 +1113,15 @@ print(auth[&quot;access_token&quot;])
         self.cache = {}
 
     def get_token(self, scopes: list[Scope]) -&gt; str:
-        cache_key = &#39;+&#39;.join(map(lambda s: s.value, scopes))
+        cache_key = &#34;+&#34;.join(map(lambda s: s.value, scopes))
         now = datetime.now()
         if cache_key in self.cache:
             auth = self.cache[cache_key]
-            if auth[&#39;expires_at&#39;] &gt; now:
+            if auth[&#34;expires_at&#34;] &gt; now:
                 return auth
-        auth = self.auth_client.authenticate(self.client_id, self.client_secret, scopes)
-        auth[&#39;expires_at&#39;] = now + timedelta(0, auth[&#39;expires_in&#39;])
+        auth = self.auth_client.authenticate(
+            self.client_id, self.client_secret, scopes)
+        auth[&#34;expires_at&#34;] = now + timedelta(0, auth[&#34;expires_in&#34;])
         return auth</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -1024,36 +1151,75 @@ print(auth[&quot;access_token&quot;])
     &#34;&#34;&#34;
     Authentication scopes.
     &#34;&#34;&#34;
-    UserProfileRead = &#39;user-profile:read&#39;
-    &#34;&#34;&#34;The application will be able to read the end user’s profile data (not including associated products and services).&#34;&#34;&#34;
-    UserRead = &#39;user:read&#39;
-    &#34;&#34;&#34;The application will be able to read the end user’s profile data, including associated products and services.&#34;&#34;&#34;
-    UserWrite = &#39;user:write&#39;
-    &#34;&#34;&#34;The application will be able to create, update, and delete the end user’s profile data, including associated products and services.&#34;&#34;&#34;
-    ViewablesRead = &#39;viewables:read&#39;
-    &#34;&#34;&#34;The application will only be able to read the end user’s viewable data (e.g., PNG and SVF files) within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataRead = &#39;data:read&#39;
-    &#34;&#34;&#34;The application will be able to read all the end user’s data (viewable and non-viewable) within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataWrite = &#39;data:write&#39;
-    &#34;&#34;&#34;The application will be able to create, update, and delete data on behalf of the end user within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataCreate = &#39;data:create&#39;
-    &#34;&#34;&#34;The application will be able to create data on behalf of the end user within the Autodesk ecosystem.&#34;&#34;&#34;
-    DataSearch = &#39;data:search&#39;
-    &#34;&#34;&#34;The application will be able to search the end user’s data within the Autodesk ecosystem.&#34;&#34;&#34;
-    BucketCreate = &#39;bucket:create&#39;
+    USER_PROFILE_READ = &#34;user-profile:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read the end user’s profile data
+    (not including associated products and services).
+    &#34;&#34;&#34;
+    USER_READ = &#34;user:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read the end user’s profile data,
+    including associated products and services.
+    &#34;&#34;&#34;
+    USER_WRITE = &#34;user:write&#34;
+    &#34;&#34;&#34;
+    The application will be able to create, update, and delete the end user’s profile data,
+    including associated products and services.
+    &#34;&#34;&#34;
+    VIEWABLES_READ = &#34;viewables:read&#34;
+    &#34;&#34;&#34;
+    The application will only be able to read the end user’s viewable data
+    (e.g., PNG and SVF files) within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_READ = &#34;data:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read all the end user’s data (viewable and non-viewable)
+    within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_WRITE = &#34;data:write&#34;
+    &#34;&#34;&#34;
+    The application will be able to create, update,
+    and delete data on behalf of the end user within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_CREATE = &#34;data:create&#34;
+    &#34;&#34;&#34;
+    The application will be able to create data on behalf of the end user
+    within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    DATA_SEARCH = &#34;data:search&#34;
+    &#34;&#34;&#34;
+    The application will be able to search the end user’s data
+    within the Autodesk ecosystem.
+    &#34;&#34;&#34;
+    BUCKET_CREATE = &#34;bucket:create&#34;
     &#34;&#34;&#34;The application will be able to create an OSS bucket it will own.&#34;&#34;&#34;
-    BucketRead = &#39;bucket:read&#39;
-    &#34;&#34;&#34;The application will be able to read the metadata and list contents for OSS buckets that it has access to.&#34;&#34;&#34;
-    BucketUpdate = &#39;bucket:update&#39;
-    &#34;&#34;&#34;The application will be able to set permissions and entitlements for OSS buckets that it has permission to modify.&#34;&#34;&#34;
-    BucketDelete = &#39;bucket:delete&#39;
+    BUCKET_READ = &#34;bucket:read&#34;
+    &#34;&#34;&#34;
+    The application will be able to read the metadata and list contents
+    for OSS buckets that it has access to.
+    &#34;&#34;&#34;
+    BUCKET_UPDATE = &#34;bucket:update&#34;
+    &#34;&#34;&#34;
+    The application will be able to set permissions and entitlements
+    for OSS buckets that it has permission to modify.
+    &#34;&#34;&#34;
+    BUCKET_DELETE = &#34;bucket:delete&#34;
     &#34;&#34;&#34;The application will be able to delete a bucket that it has permission to delete.&#34;&#34;&#34;
-    CodeAll = &#39;code:all&#39;
-    &#34;&#34;&#34;The application will be able to author and execute code on behalf of the end user (e.g., scripts processed by the Design Automation API).&#34;&#34;&#34;
-    AccountRead = &#39;account:read&#39;
-    &#34;&#34;&#34;For Product APIs, the application will be able to read the account data the end user has entitlements to.&#34;&#34;&#34;
-    AccountWrite = &#39;account:wriet&#39;
-    &#34;&#34;&#34;For Product APIs, the application will be able to update the account data the end user has entitlements to.&#34;&#34;&#34;</code></pre>
+    CODE_ALL = &#34;code:all&#34;
+    &#34;&#34;&#34;
+    The application will be able to author and execute code on behalf of the end user
+    (e.g., scripts processed by the Design Automation API).
+    &#34;&#34;&#34;
+    ACCOUNT_READ = &#34;account:read&#34;
+    &#34;&#34;&#34;
+    For Product APIs, the application will be able to read the account data
+    the end user has entitlements to.
+    &#34;&#34;&#34;
+    ACCOUNT_WRITE = &#34;account:write&#34;
+    &#34;&#34;&#34;
+    For Product APIs, the application will be able to update the account data
+    the end user has entitlements to.
+    &#34;&#34;&#34;</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -1061,65 +1227,78 @@ print(auth[&quot;access_token&quot;])
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="autodesk_forge_sdk.auth.Scope.AccountRead"><code class="name">var <span class="ident">AccountRead</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.ACCOUNT_READ"><code class="name">var <span class="ident">ACCOUNT_READ</span></code></dt>
 <dd>
-<div class="desc"><p>For Product APIs, the application will be able to read the account data the end user has entitlements to.</p></div>
+<div class="desc"><p>For Product APIs, the application will be able to read the account data
+the end user has entitlements to.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.AccountWrite"><code class="name">var <span class="ident">AccountWrite</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.ACCOUNT_WRITE"><code class="name">var <span class="ident">ACCOUNT_WRITE</span></code></dt>
 <dd>
-<div class="desc"><p>For Product APIs, the application will be able to update the account data the end user has entitlements to.</p></div>
+<div class="desc"><p>For Product APIs, the application will be able to update the account data
+the end user has entitlements to.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.BucketCreate"><code class="name">var <span class="ident">BucketCreate</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.BUCKET_CREATE"><code class="name">var <span class="ident">BUCKET_CREATE</span></code></dt>
 <dd>
 <div class="desc"><p>The application will be able to create an OSS bucket it will own.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.BucketDelete"><code class="name">var <span class="ident">BucketDelete</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.BUCKET_DELETE"><code class="name">var <span class="ident">BUCKET_DELETE</span></code></dt>
 <dd>
 <div class="desc"><p>The application will be able to delete a bucket that it has permission to delete.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.BucketRead"><code class="name">var <span class="ident">BucketRead</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.BUCKET_READ"><code class="name">var <span class="ident">BUCKET_READ</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to read the metadata and list contents for OSS buckets that it has access to.</p></div>
+<div class="desc"><p>The application will be able to read the metadata and list contents
+for OSS buckets that it has access to.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.BucketUpdate"><code class="name">var <span class="ident">BucketUpdate</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.BUCKET_UPDATE"><code class="name">var <span class="ident">BUCKET_UPDATE</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to set permissions and entitlements for OSS buckets that it has permission to modify.</p></div>
+<div class="desc"><p>The application will be able to set permissions and entitlements
+for OSS buckets that it has permission to modify.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.CodeAll"><code class="name">var <span class="ident">CodeAll</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.CODE_ALL"><code class="name">var <span class="ident">CODE_ALL</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to author and execute code on behalf of the end user (e.g., scripts processed by the Design Automation API).</p></div>
+<div class="desc"><p>The application will be able to author and execute code on behalf of the end user
+(e.g., scripts processed by the Design Automation API).</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.DataCreate"><code class="name">var <span class="ident">DataCreate</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.DATA_CREATE"><code class="name">var <span class="ident">DATA_CREATE</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to create data on behalf of the end user within the Autodesk ecosystem.</p></div>
+<div class="desc"><p>The application will be able to create data on behalf of the end user
+within the Autodesk ecosystem.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.DataRead"><code class="name">var <span class="ident">DataRead</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.DATA_READ"><code class="name">var <span class="ident">DATA_READ</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to read all the end user’s data (viewable and non-viewable) within the Autodesk ecosystem.</p></div>
+<div class="desc"><p>The application will be able to read all the end user’s data (viewable and non-viewable)
+within the Autodesk ecosystem.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.DataSearch"><code class="name">var <span class="ident">DataSearch</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.DATA_SEARCH"><code class="name">var <span class="ident">DATA_SEARCH</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to search the end user’s data within the Autodesk ecosystem.</p></div>
+<div class="desc"><p>The application will be able to search the end user’s data
+within the Autodesk ecosystem.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.DataWrite"><code class="name">var <span class="ident">DataWrite</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.DATA_WRITE"><code class="name">var <span class="ident">DATA_WRITE</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to create, update, and delete data on behalf of the end user within the Autodesk ecosystem.</p></div>
+<div class="desc"><p>The application will be able to create, update,
+and delete data on behalf of the end user within the Autodesk ecosystem.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.UserProfileRead"><code class="name">var <span class="ident">UserProfileRead</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.USER_PROFILE_READ"><code class="name">var <span class="ident">USER_PROFILE_READ</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to read the end user’s profile data (not including associated products and services).</p></div>
+<div class="desc"><p>The application will be able to read the end user’s profile data
+(not including associated products and services).</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.UserRead"><code class="name">var <span class="ident">UserRead</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.USER_READ"><code class="name">var <span class="ident">USER_READ</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to read the end user’s profile data, including associated products and services.</p></div>
+<div class="desc"><p>The application will be able to read the end user’s profile data,
+including associated products and services.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.UserWrite"><code class="name">var <span class="ident">UserWrite</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.USER_WRITE"><code class="name">var <span class="ident">USER_WRITE</span></code></dt>
 <dd>
-<div class="desc"><p>The application will be able to create, update, and delete the end user’s profile data, including associated products and services.</p></div>
+<div class="desc"><p>The application will be able to create, update, and delete the end user’s profile data,
+including associated products and services.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.auth.Scope.ViewablesRead"><code class="name">var <span class="ident">ViewablesRead</span></code></dt>
+<dt id="autodesk_forge_sdk.auth.Scope.VIEWABLES_READ"><code class="name">var <span class="ident">VIEWABLES_READ</span></code></dt>
 <dd>
-<div class="desc"><p>The application will only be able to read the end user’s viewable data (e.g., PNG and SVF files) within the Autodesk ecosystem.</p></div>
+<div class="desc"><p>The application will only be able to read the end user’s viewable data
+(e.g., PNG and SVF files) within the Autodesk ecosystem.</p></div>
 </dd>
 </dl>
 </dd>
@@ -1128,13 +1307,15 @@ print(auth[&quot;access_token&quot;])
 <span>(</span><span>access_token: str)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Simple implementation of <code><a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a></code> when you already have an access token that you want to use.
-When using this approach, make sure that the hard-coded access token supports all the scopes that may be needed.</p>
+<div class="desc"><p>Simple implementation of <code><a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a></code> when you already have an access token
+that you want to use. When using this approach, make sure that the hard-coded access token
+supports all the scopes that may be needed.</p>
 <p>Create new instance of the provider.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>access_token</code></strong> :&ensp;<code>str</code></dt>
-<dd>Token that will always be returned by <code><a title="autodesk_forge_sdk.auth.SimpleTokenProvider.get_token" href="#autodesk_forge_sdk.auth.TokenProviderInterface.get_token">SimpleTokenProvider.get_token()</a></code>.</dd>
+<dd>Token that will always be returned by
+<code><a title="autodesk_forge_sdk.auth.SimpleTokenProvider.get_token" href="#autodesk_forge_sdk.auth.TokenProviderInterface.get_token">SimpleTokenProvider.get_token()</a></code>.</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -1142,8 +1323,9 @@ When using this approach, make sure that the hard-coded access token supports al
 </summary>
 <pre><code class="python">class SimpleTokenProvider(TokenProviderInterface):
     &#34;&#34;&#34;
-    Simple implementation of `TokenProviderInterface` when you already have an access token that you want to use.
-    When using this approach, make sure that the hard-coded access token supports all the scopes that may be needed.
+    Simple implementation of `TokenProviderInterface` when you already have an access token
+    that you want to use. When using this approach, make sure that the hard-coded access token
+    supports all the scopes that may be needed.
     &#34;&#34;&#34;
 
     def __init__(self, access_token: str):
@@ -1151,7 +1333,8 @@ When using this approach, make sure that the hard-coded access token supports al
         Create new instance of the provider.
 
         Args:
-            access_token (str): Token that will always be returned by `SimpleTokenProvider.get_token`.
+            access_token (str): Token that will always be returned by
+                `SimpleTokenProvider.get_token`.
         &#34;&#34;&#34;
         self.access_token = access_token
 
@@ -1175,12 +1358,17 @@ When using this approach, make sure that the hard-coded access token supports al
 <span>class <span class="ident">TokenProviderInterface</span></span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Interface for any class that can provide access tokens to API clients
+based on a set of OAuth scopes.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class TokenProviderInterface:
+    &#34;&#34;&#34;
+    Interface for any class that can provide access tokens to API clients
+    based on a set of OAuth scopes.
+    &#34;&#34;&#34;
     def get_token(self, scopes: list[Scope]) -&gt; str:
         &#34;&#34;&#34;
         Generates access token for given set of scopes.
@@ -1191,7 +1379,7 @@ When using this approach, make sure that the hard-coded access token supports al
         Returns:
             str: Access token.
         &#34;&#34;&#34;
-        pass</code></pre>
+        raise NotImplementedError()</code></pre>
 </details>
 <h3>Subclasses</h3>
 <ul class="hlist">
@@ -1229,7 +1417,7 @@ When using this approach, make sure that the hard-coded access token supports al
     Returns:
         str: Access token.
     &#34;&#34;&#34;
-    pass</code></pre>
+    raise NotImplementedError()</code></pre>
 </details>
 </dd>
 </dl>
@@ -1248,13 +1436,17 @@ When using this approach, make sure that the hard-coded access token supports al
 <li><code><a title="autodesk_forge_sdk" href="index.html">autodesk_forge_sdk</a></code></li>
 </ul>
 </li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="autodesk_forge_sdk.auth.get_authorization_url" href="#autodesk_forge_sdk.auth.get_authorization_url">get_authorization_url</a></code></li>
+</ul>
+</li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
 <h4><code><a title="autodesk_forge_sdk.auth.AuthenticationClient" href="#autodesk_forge_sdk.auth.AuthenticationClient">AuthenticationClient</a></code></h4>
 <ul class="">
 <li><code><a title="autodesk_forge_sdk.auth.AuthenticationClient.authenticate" href="#autodesk_forge_sdk.auth.AuthenticationClient.authenticate">authenticate</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.AuthenticationClient.get_authorization_url" href="#autodesk_forge_sdk.auth.AuthenticationClient.get_authorization_url">get_authorization_url</a></code></li>
 <li><code><a title="autodesk_forge_sdk.auth.AuthenticationClient.get_token" href="#autodesk_forge_sdk.auth.AuthenticationClient.get_token">get_token</a></code></li>
 <li><code><a title="autodesk_forge_sdk.auth.AuthenticationClient.get_user_profile" href="#autodesk_forge_sdk.auth.AuthenticationClient.get_user_profile">get_user_profile</a></code></li>
 <li><code><a title="autodesk_forge_sdk.auth.AuthenticationClient.refresh_token" href="#autodesk_forge_sdk.auth.AuthenticationClient.refresh_token">refresh_token</a></code></li>
@@ -1269,21 +1461,21 @@ When using this approach, make sure that the hard-coded access token supports al
 <li>
 <h4><code><a title="autodesk_forge_sdk.auth.Scope" href="#autodesk_forge_sdk.auth.Scope">Scope</a></code></h4>
 <ul class="two-column">
-<li><code><a title="autodesk_forge_sdk.auth.Scope.AccountRead" href="#autodesk_forge_sdk.auth.Scope.AccountRead">AccountRead</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.AccountWrite" href="#autodesk_forge_sdk.auth.Scope.AccountWrite">AccountWrite</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.BucketCreate" href="#autodesk_forge_sdk.auth.Scope.BucketCreate">BucketCreate</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.BucketDelete" href="#autodesk_forge_sdk.auth.Scope.BucketDelete">BucketDelete</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.BucketRead" href="#autodesk_forge_sdk.auth.Scope.BucketRead">BucketRead</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.BucketUpdate" href="#autodesk_forge_sdk.auth.Scope.BucketUpdate">BucketUpdate</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.CodeAll" href="#autodesk_forge_sdk.auth.Scope.CodeAll">CodeAll</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.DataCreate" href="#autodesk_forge_sdk.auth.Scope.DataCreate">DataCreate</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.DataRead" href="#autodesk_forge_sdk.auth.Scope.DataRead">DataRead</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.DataSearch" href="#autodesk_forge_sdk.auth.Scope.DataSearch">DataSearch</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.DataWrite" href="#autodesk_forge_sdk.auth.Scope.DataWrite">DataWrite</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.UserProfileRead" href="#autodesk_forge_sdk.auth.Scope.UserProfileRead">UserProfileRead</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.UserRead" href="#autodesk_forge_sdk.auth.Scope.UserRead">UserRead</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.UserWrite" href="#autodesk_forge_sdk.auth.Scope.UserWrite">UserWrite</a></code></li>
-<li><code><a title="autodesk_forge_sdk.auth.Scope.ViewablesRead" href="#autodesk_forge_sdk.auth.Scope.ViewablesRead">ViewablesRead</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.ACCOUNT_READ" href="#autodesk_forge_sdk.auth.Scope.ACCOUNT_READ">ACCOUNT_READ</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.ACCOUNT_WRITE" href="#autodesk_forge_sdk.auth.Scope.ACCOUNT_WRITE">ACCOUNT_WRITE</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.BUCKET_CREATE" href="#autodesk_forge_sdk.auth.Scope.BUCKET_CREATE">BUCKET_CREATE</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.BUCKET_DELETE" href="#autodesk_forge_sdk.auth.Scope.BUCKET_DELETE">BUCKET_DELETE</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.BUCKET_READ" href="#autodesk_forge_sdk.auth.Scope.BUCKET_READ">BUCKET_READ</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.BUCKET_UPDATE" href="#autodesk_forge_sdk.auth.Scope.BUCKET_UPDATE">BUCKET_UPDATE</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.CODE_ALL" href="#autodesk_forge_sdk.auth.Scope.CODE_ALL">CODE_ALL</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.DATA_CREATE" href="#autodesk_forge_sdk.auth.Scope.DATA_CREATE">DATA_CREATE</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.DATA_READ" href="#autodesk_forge_sdk.auth.Scope.DATA_READ">DATA_READ</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.DATA_SEARCH" href="#autodesk_forge_sdk.auth.Scope.DATA_SEARCH">DATA_SEARCH</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.DATA_WRITE" href="#autodesk_forge_sdk.auth.Scope.DATA_WRITE">DATA_WRITE</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.USER_PROFILE_READ" href="#autodesk_forge_sdk.auth.Scope.USER_PROFILE_READ">USER_PROFILE_READ</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.USER_READ" href="#autodesk_forge_sdk.auth.Scope.USER_READ">USER_READ</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.USER_WRITE" href="#autodesk_forge_sdk.auth.Scope.USER_WRITE">USER_WRITE</a></code></li>
+<li><code><a title="autodesk_forge_sdk.auth.Scope.VIEWABLES_READ" href="#autodesk_forge_sdk.auth.Scope.VIEWABLES_READ">VIEWABLES_READ</a></code></li>
 </ul>
 </li>
 <li>
