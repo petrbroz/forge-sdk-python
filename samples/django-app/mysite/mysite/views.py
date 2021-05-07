@@ -1,6 +1,9 @@
+"""
+View definitions.
+"""
+
 import os
 from django.shortcuts import render
-from django.http import HttpResponse
 from autodesk_forge_sdk import AuthenticationClient, OSSClient, OAuthTokenProvider, urnify, Scope
 
 FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
