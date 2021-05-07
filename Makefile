@@ -7,6 +7,9 @@ init-dev: init
 test:
 	python3 -m unittest
 
+lint:
+	python3 -m pylint src/autodesk_forge_sdk
+
 build:
 	python3 -m build
 

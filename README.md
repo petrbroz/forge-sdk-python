@@ -17,7 +17,7 @@ import os
 from autodesk_forge_sdk import AuthenticationClient, Scope
 
 client = AuthenticationClient()
-auth = client.authenticate(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"], [Scope.ViewablesRead])
+auth = client.authenticate(os.environ["FORGE_CLIENT_ID"], os.environ["FORGE_CLIENT_SECRET"], [Scope.VIEWABLES_READ])
 print(auth["access_token"])
 ```
 
