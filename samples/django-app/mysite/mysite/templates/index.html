@@ -1,0 +1,21 @@
+{% load static %}
+
+<link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.css" type="text/css">
+<script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.js"></script>
+<link rel="stylesheet" href="{% static 'index.css' %}" type="text/css">
+
+<div>
+    <label for="token">Access Token</label>
+    <input type="text" name="token" id="token" value="{{ access_token }}">
+</div>
+<div>
+    <label for="models">Models</label>
+    <select id="models">
+        {% for obj in objects %}
+            <option value="{{ obj.urn }}">{{ obj.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div id="preview"></div>
+
+<script src="{% static 'index.js' %}"></script>

@@ -1,5 +1,5 @@
 import unittest
-from .context import OSSClient, OAuthTokenProvider, FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_BUCKET
+from .context import OSSClient, DataManagementClient, OAuthTokenProvider, FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_BUCKET
 
 class OSSClientTestSuite(unittest.TestCase):
     """Forge Data Management OSS client test cases."""
@@ -40,6 +40,16 @@ class OSSClientTestSuite(unittest.TestCase):
         with open(__file__, 'rb') as file:
             obj = self.client.upload_object(FORGE_BUCKET, 'unittest.py', file)
             assert obj
+
+class DataManagementTestSuite(unittest.TestCase):
+    """Forge Data Management client test cases."""
+
+    def setUp(self):
+        self.client = DataManagementClient(OAuthTokenProvider(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET))
+
+    def test_get_all_hubs(self):
+        hubs = self.client.get_all_hubs()
+        self.assertIsNotNone(hubs)
 
 if __name__ == "__main__":
     unittest.main()

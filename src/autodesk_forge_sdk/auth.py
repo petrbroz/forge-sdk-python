@@ -370,6 +370,14 @@ class BaseOAuthClient(BaseClient):
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
+    def _head(self, url: str, **kwargs):
+        if "scopes" in kwargs:
+            if "headers" not in kwargs:
+                kwargs["headers"] = {}
+            self._set_auth_headers(kwargs["headers"], kwargs["scopes"])
+            del kwargs["scopes"]
+        return BaseClient._head(self, url, **kwargs)
+
     def _get(self, url: str, **kwargs):
         if "scopes" in kwargs:
             if "headers" not in kwargs:

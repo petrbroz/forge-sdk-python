@@ -17,6 +17,12 @@ class BaseClient:
             url = self.base_url + url
         return url
 
+    def _head(self, url: str, **kwargs) -> requests.Response:
+        url = self._resolve_url(url)
+        response = requests.head(url, **kwargs)
+        response.raise_for_status()
+        return response
+
     def _get(self, url: str, **kwargs) -> requests.Response:
         url = self._resolve_url(url)
         response = requests.get(url, **kwargs)

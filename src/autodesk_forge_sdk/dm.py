@@ -6,7 +6,8 @@ from enum import Enum
 from urllib.parse import quote
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
-BASE_URL = "https://developer.api.autodesk.com/oss/v2"
+OSS_BASE_URL = "https://developer.api.autodesk.com/oss/v2"
+DATA_MANAGEMENT_BASE_URL = "https://developer.api.autodesk.com/project/v1"
 READ_SCOPES = [Scope.BUCKET_READ, Scope.DATA_READ]
 WRITE_SCOPES = [Scope.BUCKET_CREATE, Scope.DATA_CREATE, Scope.DATA_WRITE]
 DELETE_SCOPES = [Scope.BUCKET_DELETE]
@@ -48,7 +49,7 @@ class OSSClient(BaseOAuthClient):
     **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
     """
 
-    def __init__(self, token_provider: TokenProviderInterface(), base_url: str = BASE_URL):
+    def __init__(self, token_provider: TokenProviderInterface(), base_url: str=OSS_BASE_URL):
         """
         Create new instance of the client.
 
@@ -372,3 +373,193 @@ class OSSClient(BaseOAuthClient):
         """
         endpoint = "/buckets/{}/objects/{}".format(quote(bucket_key), quote(object_key))
         self._delete(endpoint, scopes=DELETE_SCOPES)
+
+
+class DataManagementClient(BaseOAuthClient):
+    """
+    Forge Data Management data management client.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
+    """
+
+    def __init__(
+        self, token_provider: TokenProviderInterface, base_url: str=DATA_MANAGEMENT_BASE_URL):
+        """
+        Create new instance of the client.
+
+        Args:
+            token_provider (autodesk_forge_sdk.auth.TokenProviderInterface):
+                Provider that will be used to generate access tokens for API calls.
+
+                Use `autodesk_forge_sdk.auth.OAuthTokenProvider` if you have your app's client ID
+                and client secret available, `autodesk_forge_sdk.auth.SimpleTokenProvider`
+                if you would like to use an existing access token instead, or even your own
+                implementation of the `autodesk_forge_sdk.auth.TokenProviderInterface` interface.
+
+                Note that many APIs in the Forge Data Management service require
+                a three-legged OAuth token.
+            base_url (str, optional): Base URL for API calls.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ["THREE_LEGGED_TOKEN"]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            ```
+        """
+        BaseOAuthClient.__init__(self, token_provider, base_url)
+
+    def _get_paginated(self, url: str, **kwargs) -> list:
+        json = self._get(url, **kwargs).json()
+        results = json["data"]
+        while "links" in json and "next" in json["links"]:
+            url = json["links"]["next"]["href"]
+            json = self._get(url, **kwargs).json()
+            results = results + json["data"]
+        return results
+
+    def get_hubs(self, filter_id: str=None, filter_name: str=None) -> dict:
+        """
+        Return a collection of accessible hubs for this member.
+
+        Hubs represent BIM 360 Team hubs, Fusion Team hubs (formerly known as A360 Team hubs),
+        A360 Personal hubs, or BIM 360 Docs accounts. Team hubs include BIM 360 Team hubs
+        and Fusion Team hubs (formerly known as A360 Team hubs). Personal hubs include
+        A360 Personal hubs. Only active hubs are listed.
+
+        Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+        To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+        an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+        Args:
+            filter_id (str, optional): ID to filter the results by.
+            filter_name (str, optional): Name to filter the results by.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ["THREE_LEGGED_TOKEN"]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            response = client.get_hubs()
+            print(response.data)
+            print(response.links)
+            ```
+        """
+        headers = { "Content-Type": "application/vnd.api+json" }
+        params = {}
+        if filter_id:
+            params["filter[id]"] = filter_id
+        if filter_name:
+            params["filter[name]"] = filter_name
+        return self._get("/hubs", scopes=READ_SCOPES, headers=headers, params=params).json()
+
+    def get_all_hubs(self, filter_id: str=None, filter_name: str=None) -> dict:
+        """
+        Similar to `get_hubs`, but retrieving all hubs without pagination.
+
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+        Args:
+            filter_id (str, optional): ID to filter the results by.
+            filter_name (str, optional): Name to filter the results by.
+
+        Returns:
+            list(dict): List of hubs parsed from the response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ["THREE_LEGGED_TOKEN"]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            hubs = client.get_all_hubs()
+            print(hubs)
+            ```
+        """
+        headers = { "Content-Type": "application/vnd.api+json" }
+        params = {}
+        if filter_id:
+            params["filter[id]"] = filter_id
+        if filter_name:
+            params["filter[name]"] = filter_name
+        return self._get_paginated("/hubs", scopes=READ_SCOPES, headers=headers, params=params)
+
+    def get_projects(
+        self, hub_id: str, filter_id: str=None, page_number: int=None, page_limit=None) -> dict:
+        """
+        Return a collection of projects for a given hub_id. A project represents a BIM 360
+        Team project, a Fusion Team project, a BIM 360 Docs project, or an A360 Personal project.
+        Multiple projects can be created within a single hub. Only active projects are listed.
+
+        Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+        To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+        an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+        Similarly, for BIM 360 Docs, the project ID in the Data Management API corresponds
+        to the project ID in the BIM 360 API. To convert a project ID in the BIM 360 API
+        into a project ID in the Data Management API you need to add a “b.” prefix. For example,
+        a project ID of c8b0c73d-3ae9 translates to a project ID of b.c8b0c73d-3ae9.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+        Args:
+            hub_id (str): ID of a hub to list the projects for.
+            filter_id (str, optional): ID to filter projects by.
+            page_number (int, optional): Specifies what page to return.
+                Page numbers are 0-based (the first page is page 0).
+            page_limit (int, optional): Specifies the maximum number of elements
+                to return in the page. The default value is 200. The min value is 1.
+                The max value is 200.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ["THREE_LEGGED_TOKEN"]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            response = client.get_projects("some-hub-id")
+            print(response.data)
+            print(response.links)
+            ```
+        """
+        headers = { "Content-Type": "application/vnd.api+json" }
+        params = {}
+        if filter_id:
+            params["filter[id]"] = filter_id
+        if page_number:
+            params["page[number]"] = page_number
+        if page_limit:
+            params["page[limit]"] = page_limit
+        endpoint = "/hubs/{}/projects".format(hub_id)
+        return self._get(endpoint, scopes=READ_SCOPES, headers=headers, params=params).json()
+
+    def get_all_projects(self, hub_id: str, filter_id: str=None) -> dict:
+        """
+        Similar to `get_projects`, but retrieving all projects without pagination.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+        Args:
+            hub_id (str): ID of a hub to list the projects for.
+
+        Returns:
+            list(dict): List of projects parsed from the response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ["THREE_LEGGED_TOKEN"]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            projects = client.get_all_projects("some-hub-id")
+            print(projects)
+            ```
+        """
+        headers = { "Content-Type": "application/vnd.api+json" }
+        params = {}
+        if filter_id:
+            params["filter[id]"] = filter_id
+        endpoint = "/hubs/{}/projects".format(hub_id)
+        return self._get_paginated(endpoint, scopes=READ_SCOPES, headers=headers, params=params)

@@ -95,3 +95,4 @@ ENV/
 Thumbs.db
 .pypirc
 docs
+*.sqlite3
