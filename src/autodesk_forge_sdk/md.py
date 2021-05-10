@@ -333,3 +333,76 @@ class ModelDerivativeClient(BaseOAuthClient):
         # TODO: what about the EMEA endpoint?
         endpoint = "/designdata/{}/metadata/{}/properties".format(urn, guid)
         return self._get(endpoint, scopes=READ_SCOPES).json()
+
+    def get_derivative_info(self, urn: str, deriv_urn: str) -> dict:
+        """
+        Return information about the specified derivative.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http/urn-manifest-derivativeurn-HEAD
+
+        Args:
+            urn (str): Base64-encoded ID of the source file.
+            deriv_urn (str): ID of one of the derivatives generated from the source file.
+
+        Returns:
+            dict: Derivative information, currently with just a single property, "size",
+            indicating the size of the derivative in bytes.
+        """
+        # TODO: what about the EMEA endpoint?
+        endpoint = "/designdata/{}/manifest/{}".format(urn, deriv_urn)
+        resp = self._head(endpoint, scopes=READ_SCOPES)
+        return { "size": int(resp.headers["Content-Length"]) }
+
+    def get_derivative(self, urn: str, deriv_urn: str, byte_range: tuple=None) -> bytes:
+        """
+        Download a derivative generated from a specific source model. To download the derivative,
+        you need to specify its URN which can be retrieved from the Model Derivative manifest.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http/urn-manifest-derivativeurn-GET
+
+        Args:
+            urn (str): Base64-encoded ID of the source file.
+            deriv_urn (str): ID of one of the derivatives generated from the source file.
+            byte_range ((int,int), optional): Optional tuple with first and last byte
+                of a range to download.
+
+        Returns:
+            bytes: Derivative content.
+        """
+        # TODO: what about the EMEA endpoint?
+        endpoint = "/designdata/{}/manifest/{}".format(urn, deriv_urn)
+        headers = {}
+        if byte_range:
+            headers["Range"] = "bytes={}-{}".format(byte_range[0], byte_range[1])
+        return self._get(endpoint, scopes=READ_SCOPES, headers=headers).content
+
+    def get_derivative_chunked(self, urn: str, deriv_urn: str, chunk_size: int=1024*1024) -> bytes:
+        """
+        Download complete derivative in chunks of specific size.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/model-derivative/v2/reference/http/urn-manifest-derivativeurn-GET
+
+        Args:
+            urn (str): Base64-encoded ID of the source file.
+            deriv_urn (str): ID of one of the derivatives generated from the source file.
+            chunk_size (int, optional): Size of individual chunks (in bytes).
+
+        Returns:
+            bytes: Derivative content.
+        """
+        deriv_info = self.get_derivative_info(urn, deriv_urn)
+        buff = bytes()
+        # TODO: what about the EMEA endpoint?
+        downloaded_bytes = 0
+        while downloaded_bytes < deriv_info["size"]:
+            byte_range = (
+                downloaded_bytes,
+                min(downloaded_bytes + chunk_size - 1, deriv_info["size"] - 1)
+            )
+            # TODO: better way to concat buffers in memory?
+            buff = buff + self.get_derivative(urn, deriv_urn, byte_range)
+            downloaded_bytes += byte_range[1] - byte_range[0] + 1
+        return buff
