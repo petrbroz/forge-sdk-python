@@ -5,7 +5,7 @@ with open("README.md") as f:
 
 setuptools.setup(
     name="autodesk-forge-sdk",
-    version="0.1.0",
+    version="0.1.1",
     author="Petr Broz",
     author_email="petr.broz@autodesk.com",
     description="Unofficial Autodesk Forge SDK for Python.",
