@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.2" />
-<title>autodesk_forge_sdk.oss API documentation</title>
+<title>autodesk_forge_sdk.dm API documentation</title>
 <meta name="description" content="Clients for working with the Forge Data Management service." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,7 +19,7 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>autodesk_forge_sdk.oss</code></h1>
+<h1 class="title">Module <code>autodesk_forge_sdk.dm</code></h1>
 </header>
 <section id="section-intro">
 <p>Clients for working with the Forge Data Management service.</p>
@@ -35,7 +35,8 @@ from enum import Enum
 from urllib.parse import quote
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
-BASE_URL = &#34;https://developer.api.autodesk.com/oss/v2&#34;
+OSS_BASE_URL = &#34;https://developer.api.autodesk.com/oss/v2&#34;
+DATA_MANAGEMENT_BASE_URL = &#34;https://developer.api.autodesk.com/project/v1&#34;
 READ_SCOPES = [Scope.BUCKET_READ, Scope.DATA_READ]
 WRITE_SCOPES = [Scope.BUCKET_CREATE, Scope.DATA_CREATE, Scope.DATA_WRITE]
 DELETE_SCOPES = [Scope.BUCKET_DELETE]
@@ -77,7 +78,7 @@ class OSSClient(BaseOAuthClient):
     **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, token_provider: TokenProviderInterface(), base_url: str = BASE_URL):
+    def __init__(self, token_provider: TokenProviderInterface(), base_url: str=OSS_BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -400,7 +401,197 @@ class OSSClient(BaseOAuthClient):
             object_key (str): Name of the object to be removed.
         &#34;&#34;&#34;
         endpoint = &#34;/buckets/{}/objects/{}&#34;.format(quote(bucket_key), quote(object_key))
-        self._delete(endpoint, scopes=DELETE_SCOPES)</code></pre>
+        self._delete(endpoint, scopes=DELETE_SCOPES)
+
+
+class DataManagementClient(BaseOAuthClient):
+    &#34;&#34;&#34;
+    Forge Data Management data management client.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
+    &#34;&#34;&#34;
+
+    def __init__(
+        self, token_provider: TokenProviderInterface, base_url: str=DATA_MANAGEMENT_BASE_URL):
+        &#34;&#34;&#34;
+        Create new instance of the client.
+
+        Args:
+            token_provider (autodesk_forge_sdk.auth.TokenProviderInterface):
+                Provider that will be used to generate access tokens for API calls.
+
+                Use `autodesk_forge_sdk.auth.OAuthTokenProvider` if you have your app&#39;s client ID
+                and client secret available, `autodesk_forge_sdk.auth.SimpleTokenProvider`
+                if you would like to use an existing access token instead, or even your own
+                implementation of the `autodesk_forge_sdk.auth.TokenProviderInterface` interface.
+
+                Note that many APIs in the Forge Data Management service require
+                a three-legged OAuth token.
+            base_url (str, optional): Base URL for API calls.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            ```
+        &#34;&#34;&#34;
+        BaseOAuthClient.__init__(self, token_provider, base_url)
+
+    def _get_paginated(self, url: str, **kwargs) -&gt; list:
+        json = self._get(url, **kwargs).json()
+        results = json[&#34;data&#34;]
+        while &#34;links&#34; in json and &#34;next&#34; in json[&#34;links&#34;]:
+            url = json[&#34;links&#34;][&#34;next&#34;][&#34;href&#34;]
+            json = self._get(url, **kwargs).json()
+            results = results + json[&#34;data&#34;]
+        return results
+
+    def get_hubs(self, filter_id: str=None, filter_name: str=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Return a collection of accessible hubs for this member.
+
+        Hubs represent BIM 360 Team hubs, Fusion Team hubs (formerly known as A360 Team hubs),
+        A360 Personal hubs, or BIM 360 Docs accounts. Team hubs include BIM 360 Team hubs
+        and Fusion Team hubs (formerly known as A360 Team hubs). Personal hubs include
+        A360 Personal hubs. Only active hubs are listed.
+
+        Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+        To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+        an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+        Args:
+            filter_id (str, optional): ID to filter the results by.
+            filter_name (str, optional): Name to filter the results by.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            response = client.get_hubs()
+            print(response.data)
+            print(response.links)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        if filter_name:
+            params[&#34;filter[name]&#34;] = filter_name
+        return self._get(&#34;/hubs&#34;, scopes=READ_SCOPES, headers=headers, params=params).json()
+
+    def get_all_hubs(self, filter_id: str=None, filter_name: str=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Similar to `get_hubs`, but retrieving all hubs without pagination.
+
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+        Args:
+            filter_id (str, optional): ID to filter the results by.
+            filter_name (str, optional): Name to filter the results by.
+
+        Returns:
+            list(dict): List of hubs parsed from the response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            hubs = client.get_all_hubs()
+            print(hubs)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        if filter_name:
+            params[&#34;filter[name]&#34;] = filter_name
+        return self._get_paginated(&#34;/hubs&#34;, scopes=READ_SCOPES, headers=headers, params=params)
+
+    def get_projects(
+        self, hub_id: str, filter_id: str=None, page_number: int=None, page_limit=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Return a collection of projects for a given hub_id. A project represents a BIM 360
+        Team project, a Fusion Team project, a BIM 360 Docs project, or an A360 Personal project.
+        Multiple projects can be created within a single hub. Only active projects are listed.
+
+        Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+        To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+        an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+        Similarly, for BIM 360 Docs, the project ID in the Data Management API corresponds
+        to the project ID in the BIM 360 API. To convert a project ID in the BIM 360 API
+        into a project ID in the Data Management API you need to add a “b.” prefix. For example,
+        a project ID of c8b0c73d-3ae9 translates to a project ID of b.c8b0c73d-3ae9.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+        Args:
+            hub_id (str): ID of a hub to list the projects for.
+            filter_id (str, optional): ID to filter projects by.
+            page_number (int, optional): Specifies what page to return.
+                Page numbers are 0-based (the first page is page 0).
+            page_limit (int, optional): Specifies the maximum number of elements
+                to return in the page. The default value is 200. The min value is 1.
+                The max value is 200.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            response = client.get_projects(&#34;some-hub-id&#34;)
+            print(response.data)
+            print(response.links)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        if page_number:
+            params[&#34;page[number]&#34;] = page_number
+        if page_limit:
+            params[&#34;page[limit]&#34;] = page_limit
+        endpoint = &#34;/hubs/{}/projects&#34;.format(hub_id)
+        return self._get(endpoint, scopes=READ_SCOPES, headers=headers, params=params).json()
+
+    def get_all_projects(self, hub_id: str, filter_id: str=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Similar to `get_projects`, but retrieving all projects without pagination.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+        Args:
+            hub_id (str): ID of a hub to list the projects for.
+
+        Returns:
+            list(dict): List of projects parsed from the response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            projects = client.get_all_projects(&#34;some-hub-id&#34;)
+            print(projects)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        endpoint = &#34;/hubs/{}/projects&#34;.format(hub_id)
+        return self._get_paginated(endpoint, scopes=READ_SCOPES, headers=headers, params=params)</code></pre>
 </details>
 </section>
 <section>
@@ -412,7 +603,518 @@ class OSSClient(BaseOAuthClient):
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="autodesk_forge_sdk.oss.DataRetention"><code class="flex name class">
+<dt id="autodesk_forge_sdk.dm.DataManagementClient"><code class="flex name class">
+<span>class <span class="ident">DataManagementClient</span></span>
+<span>(</span><span>token_provider: <a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a>, base_url: str = 'https://developer.api.autodesk.com/project/v1')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Forge Data Management data management client.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http">https://forge.autodesk.com/en/docs/data/v2/reference/http</a></p>
+<p>Create new instance of the client.</p>
+<h2 id="args">Args</h2>
+<p>token_provider (autodesk_forge_sdk.auth.TokenProviderInterface):
+Provider that will be used to generate access tokens for API calls.</p>
+<pre><code>Use &lt;code&gt;&lt;a title="autodesk_forge_sdk.auth.OAuthTokenProvider" href="auth.html#autodesk_forge_sdk.auth.OAuthTokenProvider"&gt;OAuthTokenProvider&lt;/a&gt;&lt;/code&gt; if you have your app's client ID
+and client secret available, &lt;code&gt;&lt;a title="autodesk_forge_sdk.auth.SimpleTokenProvider" href="auth.html#autodesk_forge_sdk.auth.SimpleTokenProvider"&gt;SimpleTokenProvider&lt;/a&gt;&lt;/code&gt;
+if you would like to use an existing access token instead, or even your own
+implementation of the &lt;code&gt;&lt;a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface"&gt;TokenProviderInterface&lt;/a&gt;&lt;/code&gt; interface.
+
+Note that many APIs in the Forge Data Management service require
+a three-legged OAuth token.
+</code></pre>
+<dl>
+<dt><strong><code>base_url</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Base URL for API calls.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>THREE_LEGGED_TOKEN = os.environ[&quot;THREE_LEGGED_TOKEN&quot;]
+client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DataManagementClient(BaseOAuthClient):
+    &#34;&#34;&#34;
+    Forge Data Management data management client.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
+    &#34;&#34;&#34;
+
+    def __init__(
+        self, token_provider: TokenProviderInterface, base_url: str=DATA_MANAGEMENT_BASE_URL):
+        &#34;&#34;&#34;
+        Create new instance of the client.
+
+        Args:
+            token_provider (autodesk_forge_sdk.auth.TokenProviderInterface):
+                Provider that will be used to generate access tokens for API calls.
+
+                Use `autodesk_forge_sdk.auth.OAuthTokenProvider` if you have your app&#39;s client ID
+                and client secret available, `autodesk_forge_sdk.auth.SimpleTokenProvider`
+                if you would like to use an existing access token instead, or even your own
+                implementation of the `autodesk_forge_sdk.auth.TokenProviderInterface` interface.
+
+                Note that many APIs in the Forge Data Management service require
+                a three-legged OAuth token.
+            base_url (str, optional): Base URL for API calls.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            ```
+        &#34;&#34;&#34;
+        BaseOAuthClient.__init__(self, token_provider, base_url)
+
+    def _get_paginated(self, url: str, **kwargs) -&gt; list:
+        json = self._get(url, **kwargs).json()
+        results = json[&#34;data&#34;]
+        while &#34;links&#34; in json and &#34;next&#34; in json[&#34;links&#34;]:
+            url = json[&#34;links&#34;][&#34;next&#34;][&#34;href&#34;]
+            json = self._get(url, **kwargs).json()
+            results = results + json[&#34;data&#34;]
+        return results
+
+    def get_hubs(self, filter_id: str=None, filter_name: str=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Return a collection of accessible hubs for this member.
+
+        Hubs represent BIM 360 Team hubs, Fusion Team hubs (formerly known as A360 Team hubs),
+        A360 Personal hubs, or BIM 360 Docs accounts. Team hubs include BIM 360 Team hubs
+        and Fusion Team hubs (formerly known as A360 Team hubs). Personal hubs include
+        A360 Personal hubs. Only active hubs are listed.
+
+        Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+        To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+        an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+        Args:
+            filter_id (str, optional): ID to filter the results by.
+            filter_name (str, optional): Name to filter the results by.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            response = client.get_hubs()
+            print(response.data)
+            print(response.links)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        if filter_name:
+            params[&#34;filter[name]&#34;] = filter_name
+        return self._get(&#34;/hubs&#34;, scopes=READ_SCOPES, headers=headers, params=params).json()
+
+    def get_all_hubs(self, filter_id: str=None, filter_name: str=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Similar to `get_hubs`, but retrieving all hubs without pagination.
+
+        **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+        Args:
+            filter_id (str, optional): ID to filter the results by.
+            filter_name (str, optional): Name to filter the results by.
+
+        Returns:
+            list(dict): List of hubs parsed from the response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            hubs = client.get_all_hubs()
+            print(hubs)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        if filter_name:
+            params[&#34;filter[name]&#34;] = filter_name
+        return self._get_paginated(&#34;/hubs&#34;, scopes=READ_SCOPES, headers=headers, params=params)
+
+    def get_projects(
+        self, hub_id: str, filter_id: str=None, page_number: int=None, page_limit=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Return a collection of projects for a given hub_id. A project represents a BIM 360
+        Team project, a Fusion Team project, a BIM 360 Docs project, or an A360 Personal project.
+        Multiple projects can be created within a single hub. Only active projects are listed.
+
+        Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+        To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+        an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+        Similarly, for BIM 360 Docs, the project ID in the Data Management API corresponds
+        to the project ID in the BIM 360 API. To convert a project ID in the BIM 360 API
+        into a project ID in the Data Management API you need to add a “b.” prefix. For example,
+        a project ID of c8b0c73d-3ae9 translates to a project ID of b.c8b0c73d-3ae9.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+        Args:
+            hub_id (str): ID of a hub to list the projects for.
+            filter_id (str, optional): ID to filter projects by.
+            page_number (int, optional): Specifies what page to return.
+                Page numbers are 0-based (the first page is page 0).
+            page_limit (int, optional): Specifies the maximum number of elements
+                to return in the page. The default value is 200. The min value is 1.
+                The max value is 200.
+
+        Returns:
+            dict: Parsed response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            response = client.get_projects(&#34;some-hub-id&#34;)
+            print(response.data)
+            print(response.links)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        if page_number:
+            params[&#34;page[number]&#34;] = page_number
+        if page_limit:
+            params[&#34;page[limit]&#34;] = page_limit
+        endpoint = &#34;/hubs/{}/projects&#34;.format(hub_id)
+        return self._get(endpoint, scopes=READ_SCOPES, headers=headers, params=params).json()
+
+    def get_all_projects(self, hub_id: str, filter_id: str=None) -&gt; dict:
+        &#34;&#34;&#34;
+        Similar to `get_projects`, but retrieving all projects without pagination.
+
+        **Documentation**:
+            https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+        Args:
+            hub_id (str): ID of a hub to list the projects for.
+
+        Returns:
+            list(dict): List of projects parsed from the response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            projects = client.get_all_projects(&#34;some-hub-id&#34;)
+            print(projects)
+            ```
+        &#34;&#34;&#34;
+        headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+        params = {}
+        if filter_id:
+            params[&#34;filter[id]&#34;] = filter_id
+        endpoint = &#34;/hubs/{}/projects&#34;.format(hub_id)
+        return self._get_paginated(endpoint, scopes=READ_SCOPES, headers=headers, params=params)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="autodesk_forge_sdk.auth.BaseOAuthClient" href="auth.html#autodesk_forge_sdk.auth.BaseOAuthClient">BaseOAuthClient</a></li>
+<li><a title="autodesk_forge_sdk.base.BaseClient" href="base.html#autodesk_forge_sdk.base.BaseClient">BaseClient</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="autodesk_forge_sdk.dm.DataManagementClient.get_all_hubs"><code class="name flex">
+<span>def <span class="ident">get_all_hubs</span></span>(<span>self, filter_id: str = None, filter_name: str = None) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Similar to <code>get_hubs</code>, but retrieving all hubs without pagination.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>filter_id</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>ID to filter the results by.</dd>
+<dt><strong><code>filter_name</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Name to filter the results by.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>list(dict): List of hubs parsed from the response JSON.</p>
+<h2 id="examples">Examples</h2>
+<pre><code>THREE_LEGGED_TOKEN = os.environ[&quot;THREE_LEGGED_TOKEN&quot;]
+client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+hubs = client.get_all_hubs()
+print(hubs)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_all_hubs(self, filter_id: str=None, filter_name: str=None) -&gt; dict:
+    &#34;&#34;&#34;
+    Similar to `get_hubs`, but retrieving all hubs without pagination.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+    Args:
+        filter_id (str, optional): ID to filter the results by.
+        filter_name (str, optional): Name to filter the results by.
+
+    Returns:
+        list(dict): List of hubs parsed from the response JSON.
+
+    Examples:
+        ```
+        THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+        client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+        hubs = client.get_all_hubs()
+        print(hubs)
+        ```
+    &#34;&#34;&#34;
+    headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+    params = {}
+    if filter_id:
+        params[&#34;filter[id]&#34;] = filter_id
+    if filter_name:
+        params[&#34;filter[name]&#34;] = filter_name
+    return self._get_paginated(&#34;/hubs&#34;, scopes=READ_SCOPES, headers=headers, params=params)</code></pre>
+</details>
+</dd>
+<dt id="autodesk_forge_sdk.dm.DataManagementClient.get_all_projects"><code class="name flex">
+<span>def <span class="ident">get_all_projects</span></span>(<span>self, hub_id: str, filter_id: str = None) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Similar to <code>get_projects</code>, but retrieving all projects without pagination.</p>
+<p><strong>Documentation</strong>:
+<a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>hub_id</code></strong> :&ensp;<code>str</code></dt>
+<dd>ID of a hub to list the projects for.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>list(dict): List of projects parsed from the response JSON.</p>
+<h2 id="examples">Examples</h2>
+<pre><code>THREE_LEGGED_TOKEN = os.environ[&quot;THREE_LEGGED_TOKEN&quot;]
+client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+projects = client.get_all_projects(&quot;some-hub-id&quot;)
+print(projects)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_all_projects(self, hub_id: str, filter_id: str=None) -&gt; dict:
+    &#34;&#34;&#34;
+    Similar to `get_projects`, but retrieving all projects without pagination.
+
+    **Documentation**:
+        https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+    Args:
+        hub_id (str): ID of a hub to list the projects for.
+
+    Returns:
+        list(dict): List of projects parsed from the response JSON.
+
+    Examples:
+        ```
+        THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+        client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+        projects = client.get_all_projects(&#34;some-hub-id&#34;)
+        print(projects)
+        ```
+    &#34;&#34;&#34;
+    headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+    params = {}
+    if filter_id:
+        params[&#34;filter[id]&#34;] = filter_id
+    endpoint = &#34;/hubs/{}/projects&#34;.format(hub_id)
+    return self._get_paginated(endpoint, scopes=READ_SCOPES, headers=headers, params=params)</code></pre>
+</details>
+</dd>
+<dt id="autodesk_forge_sdk.dm.DataManagementClient.get_hubs"><code class="name flex">
+<span>def <span class="ident">get_hubs</span></span>(<span>self, filter_id: str = None, filter_name: str = None) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return a collection of accessible hubs for this member.</p>
+<p>Hubs represent BIM 360 Team hubs, Fusion Team hubs (formerly known as A360 Team hubs),
+A360 Personal hubs, or BIM 360 Docs accounts. Team hubs include BIM 360 Team hubs
+and Fusion Team hubs (formerly known as A360 Team hubs). Personal hubs include
+A360 Personal hubs. Only active hubs are listed.</p>
+<p>Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.</p>
+<p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>filter_id</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>ID to filter the results by.</dd>
+<dt><strong><code>filter_name</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Name to filter the results by.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response JSON.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>THREE_LEGGED_TOKEN = os.environ[&quot;THREE_LEGGED_TOKEN&quot;]
+client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+response = client.get_hubs()
+print(response.data)
+print(response.links)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_hubs(self, filter_id: str=None, filter_name: str=None) -&gt; dict:
+    &#34;&#34;&#34;
+    Return a collection of accessible hubs for this member.
+
+    Hubs represent BIM 360 Team hubs, Fusion Team hubs (formerly known as A360 Team hubs),
+    A360 Personal hubs, or BIM 360 Docs accounts. Team hubs include BIM 360 Team hubs
+    and Fusion Team hubs (formerly known as A360 Team hubs). Personal hubs include
+    A360 Personal hubs. Only active hubs are listed.
+
+    Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+    To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+    an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-GET
+
+    Args:
+        filter_id (str, optional): ID to filter the results by.
+        filter_name (str, optional): Name to filter the results by.
+
+    Returns:
+        dict: Parsed response JSON.
+
+    Examples:
+        ```
+        THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+        client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+        response = client.get_hubs()
+        print(response.data)
+        print(response.links)
+        ```
+    &#34;&#34;&#34;
+    headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+    params = {}
+    if filter_id:
+        params[&#34;filter[id]&#34;] = filter_id
+    if filter_name:
+        params[&#34;filter[name]&#34;] = filter_name
+    return self._get(&#34;/hubs&#34;, scopes=READ_SCOPES, headers=headers, params=params).json()</code></pre>
+</details>
+</dd>
+<dt id="autodesk_forge_sdk.dm.DataManagementClient.get_projects"><code class="name flex">
+<span>def <span class="ident">get_projects</span></span>(<span>self, hub_id: str, filter_id: str = None, page_number: int = None, page_limit=None) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return a collection of projects for a given hub_id. A project represents a BIM 360
+Team project, a Fusion Team project, a BIM 360 Docs project, or an A360 Personal project.
+Multiple projects can be created within a single hub. Only active projects are listed.</p>
+<p>Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.</p>
+<p>Similarly, for BIM 360 Docs, the project ID in the Data Management API corresponds
+to the project ID in the BIM 360 API. To convert a project ID in the BIM 360 API
+into a project ID in the Data Management API you need to add a “b.” prefix. For example,
+a project ID of c8b0c73d-3ae9 translates to a project ID of b.c8b0c73d-3ae9.</p>
+<p><strong>Documentation</strong>:
+<a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET</a></p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>hub_id</code></strong> :&ensp;<code>str</code></dt>
+<dd>ID of a hub to list the projects for.</dd>
+<dt><strong><code>filter_id</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>ID to filter projects by.</dd>
+<dt><strong><code>page_number</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Specifies what page to return.
+Page numbers are 0-based (the first page is page 0).</dd>
+<dt><strong><code>page_limit</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Specifies the maximum number of elements
+to return in the page. The default value is 200. The min value is 1.
+The max value is 200.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Parsed response JSON.</dd>
+</dl>
+<h2 id="examples">Examples</h2>
+<pre><code>THREE_LEGGED_TOKEN = os.environ[&quot;THREE_LEGGED_TOKEN&quot;]
+client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+response = client.get_projects(&quot;some-hub-id&quot;)
+print(response.data)
+print(response.links)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_projects(
+    self, hub_id: str, filter_id: str=None, page_number: int=None, page_limit=None) -&gt; dict:
+    &#34;&#34;&#34;
+    Return a collection of projects for a given hub_id. A project represents a BIM 360
+    Team project, a Fusion Team project, a BIM 360 Docs project, or an A360 Personal project.
+    Multiple projects can be created within a single hub. Only active projects are listed.
+
+    Note that for BIM 360 Docs, a hub ID corresponds to an account ID in the BIM 360 API.
+    To convert an account ID into a hub ID you need to add a “b.” prefix. For example,
+    an account ID of c8b0c73d-3ae9 translates to a hub ID of b.c8b0c73d-3ae9.
+
+    Similarly, for BIM 360 Docs, the project ID in the Data Management API corresponds
+    to the project ID in the BIM 360 API. To convert a project ID in the BIM 360 API
+    into a project ID in the Data Management API you need to add a “b.” prefix. For example,
+    a project ID of c8b0c73d-3ae9 translates to a project ID of b.c8b0c73d-3ae9.
+
+    **Documentation**:
+        https://forge.autodesk.com/en/docs/data/v2/reference/http/hubs-hub_id-projects-GET
+
+    Args:
+        hub_id (str): ID of a hub to list the projects for.
+        filter_id (str, optional): ID to filter projects by.
+        page_number (int, optional): Specifies what page to return.
+            Page numbers are 0-based (the first page is page 0).
+        page_limit (int, optional): Specifies the maximum number of elements
+            to return in the page. The default value is 200. The min value is 1.
+            The max value is 200.
+
+    Returns:
+        dict: Parsed response JSON.
+
+    Examples:
+        ```
+        THREE_LEGGED_TOKEN = os.environ[&#34;THREE_LEGGED_TOKEN&#34;]
+        client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+        response = client.get_projects(&#34;some-hub-id&#34;)
+        print(response.data)
+        print(response.links)
+        ```
+    &#34;&#34;&#34;
+    headers = { &#34;Content-Type&#34;: &#34;application/vnd.api+json&#34; }
+    params = {}
+    if filter_id:
+        params[&#34;filter[id]&#34;] = filter_id
+    if page_number:
+        params[&#34;page[number]&#34;] = page_number
+    if page_limit:
+        params[&#34;page[limit]&#34;] = page_limit
+    endpoint = &#34;/hubs/{}/projects&#34;.format(hub_id)
+    return self._get(endpoint, scopes=READ_SCOPES, headers=headers, params=params).json()</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="autodesk_forge_sdk.dm.DataRetention"><code class="flex name class">
 <span>class <span class="ident">DataRetention</span></span>
 <span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
 </code></dt>
@@ -456,19 +1158,19 @@ class OSSClient(BaseOAuthClient):
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="autodesk_forge_sdk.oss.DataRetention.PERSISTENT"><code class="name">var <span class="ident">PERSISTENT</span></code></dt>
+<dt id="autodesk_forge_sdk.dm.DataRetention.PERSISTENT"><code class="name">var <span class="ident">PERSISTENT</span></code></dt>
 <dd>
 <div class="desc"><p>Persistent storage is intended for user data. When a file is uploaded,
 the owner should expect this item to be available for as long as the owner account is active,
 or until he or she deletes the item.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.oss.DataRetention.TEMPORARY"><code class="name">var <span class="ident">TEMPORARY</span></code></dt>
+<dt id="autodesk_forge_sdk.dm.DataRetention.TEMPORARY"><code class="name">var <span class="ident">TEMPORARY</span></code></dt>
 <dd>
 <div class="desc"><p>This type of storage is suitable for artifacts produced for user-uploaded content
 where after some period of activity, the user may rarely access the artifacts.</p>
 <p>When an object has reached 30 days of age, it is deleted.</p></div>
 </dd>
-<dt id="autodesk_forge_sdk.oss.DataRetention.TRANSIENT"><code class="name">var <span class="ident">TRANSIENT</span></code></dt>
+<dt id="autodesk_forge_sdk.dm.DataRetention.TRANSIENT"><code class="name">var <span class="ident">TRANSIENT</span></code></dt>
 <dd>
 <div class="desc"><p>Think of this type of storage as a cache. Use it for ephemeral results. For example,
 you might use this for objects that are part of producing other persistent artifacts,
@@ -479,9 +1181,9 @@ each of them will have its own retention period of 24 hours.</p></div>
 </dd>
 </dl>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient"><code class="flex name class">
+<dt id="autodesk_forge_sdk.dm.OSSClient"><code class="flex name class">
 <span>class <span class="ident">OSSClient</span></span>
-<span>(</span><span>token_provider: <<a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a> object at 0x7f467eced5b0>, base_url: str = 'https://developer.api.autodesk.com/oss/v2')</span>
+<span>(</span><span>token_provider: <<a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a> object at 0x7fd1d8db3670>, base_url: str = 'https://developer.api.autodesk.com/oss/v2')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Forge Data Management object storage client.</p>
@@ -523,7 +1225,7 @@ client3 = OSSClient(MyTokenProvider())
     **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
     &#34;&#34;&#34;
 
-    def __init__(self, token_provider: TokenProviderInterface(), base_url: str = BASE_URL):
+    def __init__(self, token_provider: TokenProviderInterface(), base_url: str=OSS_BASE_URL):
         &#34;&#34;&#34;
         Create new instance of the client.
 
@@ -855,8 +1557,8 @@ client3 = OSSClient(MyTokenProvider())
 </ul>
 <h3>Methods</h3>
 <dl>
-<dt id="autodesk_forge_sdk.oss.OSSClient.create_bucket"><code class="name flex">
-<span>def <span class="ident">create_bucket</span></span>(<span>self, bucket_key: str, data_retention_policy: <a title="autodesk_forge_sdk.oss.DataRetention" href="#autodesk_forge_sdk.oss.DataRetention">DataRetention</a>, region: str) ‑> dict</span>
+<dt id="autodesk_forge_sdk.dm.OSSClient.create_bucket"><code class="name flex">
+<span>def <span class="ident">create_bucket</span></span>(<span>self, bucket_key: str, data_retention_policy: <a title="autodesk_forge_sdk.dm.DataRetention" href="#autodesk_forge_sdk.dm.DataRetention">DataRetention</a>, region: str) ‑> dict</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Create a bucket. Buckets are arbitrary spaces that are created by applications
@@ -870,7 +1572,7 @@ that creates it.</p>
 across all applications and regions, otherwise the call will fail.
 Possible values: -_.a-z0-9 (between 3-128 characters in length).
 Note that you cannot change a bucket key.</dd>
-<dt><strong><code>data_retention_policy</code></strong> :&ensp;<code><a title="autodesk_forge_sdk.oss.DataRetention" href="#autodesk_forge_sdk.oss.DataRetention">DataRetention</a></code></dt>
+<dt><strong><code>data_retention_policy</code></strong> :&ensp;<code><a title="autodesk_forge_sdk.dm.DataRetention" href="#autodesk_forge_sdk.dm.DataRetention">DataRetention</a></code></dt>
 <dd>Data retention policy.</dd>
 <dt><strong><code>region</code></strong> :&ensp;<code>str</code></dt>
 <dd>The region where the bucket resides. Acceptable values: US, EMEA.</dd>
@@ -933,7 +1635,7 @@ print(details)
     return self._post(&#34;/buckets&#34;, WRITE_SCOPES, json=json, headers=headers).json()</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.delete_bucket"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.delete_bucket"><code class="name flex">
 <span>def <span class="ident">delete_bucket</span></span>(<span>self, bucket_key: str)</span>
 </code></dt>
 <dd>
@@ -963,7 +1665,7 @@ print(details)
     self._delete(endpoint, scopes=DELETE_SCOPES)</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.delete_object"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.delete_object"><code class="name flex">
 <span>def <span class="ident">delete_object</span></span>(<span>self, bucket_key: str, object_key: str)</span>
 </code></dt>
 <dd>
@@ -996,11 +1698,11 @@ print(details)
     self._delete(endpoint, scopes=DELETE_SCOPES)</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.get_all_buckets"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.get_all_buckets"><code class="name flex">
 <span>def <span class="ident">get_all_buckets</span></span>(<span>self, region: str = None) ‑> list</span>
 </code></dt>
 <dd>
-<div class="desc"><p>List all buckets owned by the application. Similar to <code><a title="autodesk_forge_sdk.oss.OSSClient.get_buckets" href="#autodesk_forge_sdk.oss.OSSClient.get_buckets">OSSClient.get_buckets()</a></code>
+<div class="desc"><p>List all buckets owned by the application. Similar to <code><a title="autodesk_forge_sdk.dm.OSSClient.get_buckets" href="#autodesk_forge_sdk.dm.OSSClient.get_buckets">OSSClient.get_buckets()</a></code>
 but returning all results without pagination.</p>
 <p><strong>Documentation</strong>: <a href="https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET">https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-GET</a></p>
 <h2 id="args">Args</h2>
@@ -1054,11 +1756,11 @@ print(buckets)
     return self._get_paginated(&#34;/buckets&#34;, scopes=READ_SCOPES, params=params)</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.get_all_objects"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.get_all_objects"><code class="name flex">
 <span>def <span class="ident">get_all_objects</span></span>(<span>self, bucket_key: str, begins_with: str = None) ‑> list</span>
 </code></dt>
 <dd>
-<div class="desc"><p>List all objects in bucket. Similar to <code><a title="autodesk_forge_sdk.oss.OSSClient.get_objects" href="#autodesk_forge_sdk.oss.OSSClient.get_objects">OSSClient.get_objects()</a></code> but returning
+<div class="desc"><p>List all objects in bucket. Similar to <code><a title="autodesk_forge_sdk.dm.OSSClient.get_objects" href="#autodesk_forge_sdk.dm.OSSClient.get_objects">OSSClient.get_objects()</a></code> but returning
 all results without pagination.</p>
 <h2 id="args">Args</h2>
 <dl>
@@ -1112,7 +1814,7 @@ print(objects)
     return self._get_paginated(endpoint, scopes=READ_SCOPES, params=params)</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.get_bucket_details"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.get_bucket_details"><code class="name flex">
 <span>def <span class="ident">get_bucket_details</span></span>(<span>self, bucket_key: str) ‑> dict</span>
 </code></dt>
 <dd>
@@ -1162,7 +1864,7 @@ print(details)
     return self._get(endpoint, scopes=READ_SCOPES).json()</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.get_buckets"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.get_buckets"><code class="name flex">
 <span>def <span class="ident">get_buckets</span></span>(<span>self, region: str = None, limit: int = None, start_at: str = None) ‑> dict</span>
 </code></dt>
 <dd>
@@ -1234,7 +1936,7 @@ print(buckets.next)
     return self._get(&#34;/buckets&#34;, scopes=READ_SCOPES, params=params).json()</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.get_object_details"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.get_object_details"><code class="name flex">
 <span>def <span class="ident">get_object_details</span></span>(<span>self, bucket_key: str, object_key: str) ‑> dict</span>
 </code></dt>
 <dd>
@@ -1293,7 +1995,7 @@ print(details)
     return self._get(endpoint, scopes=READ_SCOPES).json()</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.get_objects"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.get_objects"><code class="name flex">
 <span>def <span class="ident">get_objects</span></span>(<span>self, bucket_key: str, **kwargs) ‑> dict</span>
 </code></dt>
 <dd>
@@ -1371,7 +2073,7 @@ print(objects.next)
     return self._get(endpoint, scopes=READ_SCOPES, params=params).json()</code></pre>
 </details>
 </dd>
-<dt id="autodesk_forge_sdk.oss.OSSClient.upload_object"><code class="name flex">
+<dt id="autodesk_forge_sdk.dm.OSSClient.upload_object"><code class="name flex">
 <span>def <span class="ident">upload_object</span></span>(<span>self, bucket_key: str, object_key: str, buff) ‑> list</span>
 </code></dt>
 <dd>
@@ -1464,26 +2166,35 @@ with open(&quot;local.dwg&quot;, &quot;rb&quot;) as file:
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="autodesk_forge_sdk.oss.DataRetention" href="#autodesk_forge_sdk.oss.DataRetention">DataRetention</a></code></h4>
+<h4><code><a title="autodesk_forge_sdk.dm.DataManagementClient" href="#autodesk_forge_sdk.dm.DataManagementClient">DataManagementClient</a></code></h4>
 <ul class="">
-<li><code><a title="autodesk_forge_sdk.oss.DataRetention.PERSISTENT" href="#autodesk_forge_sdk.oss.DataRetention.PERSISTENT">PERSISTENT</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.DataRetention.TEMPORARY" href="#autodesk_forge_sdk.oss.DataRetention.TEMPORARY">TEMPORARY</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.DataRetention.TRANSIENT" href="#autodesk_forge_sdk.oss.DataRetention.TRANSIENT">TRANSIENT</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.DataManagementClient.get_all_hubs" href="#autodesk_forge_sdk.dm.DataManagementClient.get_all_hubs">get_all_hubs</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.DataManagementClient.get_all_projects" href="#autodesk_forge_sdk.dm.DataManagementClient.get_all_projects">get_all_projects</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.DataManagementClient.get_hubs" href="#autodesk_forge_sdk.dm.DataManagementClient.get_hubs">get_hubs</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.DataManagementClient.get_projects" href="#autodesk_forge_sdk.dm.DataManagementClient.get_projects">get_projects</a></code></li>
 </ul>
 </li>
 <li>
-<h4><code><a title="autodesk_forge_sdk.oss.OSSClient" href="#autodesk_forge_sdk.oss.OSSClient">OSSClient</a></code></h4>
+<h4><code><a title="autodesk_forge_sdk.dm.DataRetention" href="#autodesk_forge_sdk.dm.DataRetention">DataRetention</a></code></h4>
+<ul class="">
+<li><code><a title="autodesk_forge_sdk.dm.DataRetention.PERSISTENT" href="#autodesk_forge_sdk.dm.DataRetention.PERSISTENT">PERSISTENT</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.DataRetention.TEMPORARY" href="#autodesk_forge_sdk.dm.DataRetention.TEMPORARY">TEMPORARY</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.DataRetention.TRANSIENT" href="#autodesk_forge_sdk.dm.DataRetention.TRANSIENT">TRANSIENT</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="autodesk_forge_sdk.dm.OSSClient" href="#autodesk_forge_sdk.dm.OSSClient">OSSClient</a></code></h4>
 <ul class="two-column">
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.create_bucket" href="#autodesk_forge_sdk.oss.OSSClient.create_bucket">create_bucket</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.delete_bucket" href="#autodesk_forge_sdk.oss.OSSClient.delete_bucket">delete_bucket</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.delete_object" href="#autodesk_forge_sdk.oss.OSSClient.delete_object">delete_object</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.get_all_buckets" href="#autodesk_forge_sdk.oss.OSSClient.get_all_buckets">get_all_buckets</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.get_all_objects" href="#autodesk_forge_sdk.oss.OSSClient.get_all_objects">get_all_objects</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.get_bucket_details" href="#autodesk_forge_sdk.oss.OSSClient.get_bucket_details">get_bucket_details</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.get_buckets" href="#autodesk_forge_sdk.oss.OSSClient.get_buckets">get_buckets</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.get_object_details" href="#autodesk_forge_sdk.oss.OSSClient.get_object_details">get_object_details</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.get_objects" href="#autodesk_forge_sdk.oss.OSSClient.get_objects">get_objects</a></code></li>
-<li><code><a title="autodesk_forge_sdk.oss.OSSClient.upload_object" href="#autodesk_forge_sdk.oss.OSSClient.upload_object">upload_object</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.create_bucket" href="#autodesk_forge_sdk.dm.OSSClient.create_bucket">create_bucket</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.delete_bucket" href="#autodesk_forge_sdk.dm.OSSClient.delete_bucket">delete_bucket</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.delete_object" href="#autodesk_forge_sdk.dm.OSSClient.delete_object">delete_object</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.get_all_buckets" href="#autodesk_forge_sdk.dm.OSSClient.get_all_buckets">get_all_buckets</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.get_all_objects" href="#autodesk_forge_sdk.dm.OSSClient.get_all_objects">get_all_objects</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.get_bucket_details" href="#autodesk_forge_sdk.dm.OSSClient.get_bucket_details">get_bucket_details</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.get_buckets" href="#autodesk_forge_sdk.dm.OSSClient.get_buckets">get_buckets</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.get_object_details" href="#autodesk_forge_sdk.dm.OSSClient.get_object_details">get_object_details</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.get_objects" href="#autodesk_forge_sdk.dm.OSSClient.get_objects">get_objects</a></code></li>
+<li><code><a title="autodesk_forge_sdk.dm.OSSClient.upload_object" href="#autodesk_forge_sdk.dm.OSSClient.upload_object">upload_object</a></code></li>
 </ul>
 </li>
 </ul>

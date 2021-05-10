@@ -399,6 +399,14 @@ class BaseOAuthClient(BaseClient):
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
+    def _head(self, url: str, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._head(self, url, **kwargs)
+
     def _get(self, url: str, **kwargs):
         if &#34;scopes&#34; in kwargs:
             if &#34;headers&#34; not in kwargs:
@@ -1027,6 +1035,14 @@ to generate access tokens for API calls.</dd>
         BaseClient.__init__(self, base_url)
         self.token_provider = token_provider
 
+    def _head(self, url: str, **kwargs):
+        if &#34;scopes&#34; in kwargs:
+            if &#34;headers&#34; not in kwargs:
+                kwargs[&#34;headers&#34;] = {}
+            self._set_auth_headers(kwargs[&#34;headers&#34;], kwargs[&#34;scopes&#34;])
+            del kwargs[&#34;scopes&#34;]
+        return BaseClient._head(self, url, **kwargs)
+
     def _get(self, url: str, **kwargs):
         if &#34;scopes&#34; in kwargs:
             if &#34;headers&#34; not in kwargs:
@@ -1070,8 +1086,9 @@ to generate access tokens for API calls.</dd>
 </ul>
 <h3>Subclasses</h3>
 <ul class="hlist">
+<li><a title="autodesk_forge_sdk.dm.DataManagementClient" href="dm.html#autodesk_forge_sdk.dm.DataManagementClient">DataManagementClient</a></li>
+<li><a title="autodesk_forge_sdk.dm.OSSClient" href="dm.html#autodesk_forge_sdk.dm.OSSClient">OSSClient</a></li>
 <li><a title="autodesk_forge_sdk.md.ModelDerivativeClient" href="md.html#autodesk_forge_sdk.md.ModelDerivativeClient">ModelDerivativeClient</a></li>
-<li><a title="autodesk_forge_sdk.oss.OSSClient" href="oss.html#autodesk_forge_sdk.oss.OSSClient">OSSClient</a></li>
 </ul>
 </dd>
 <dt id="autodesk_forge_sdk.auth.OAuthTokenProvider"><code class="flex name class">
