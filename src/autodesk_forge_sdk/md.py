@@ -146,7 +146,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         if "force" in kwargs:
             headers["x-ads-force"] = "true"
         # TODO: what about the EMEA endpoint?
-        return self._post("/designdata/job", WRITE_SCOPES, json=json, headers=headers).json()
+        return self._post("/designdata/job", scopes=WRITE_SCOPES, json=json, headers=headers).json()
 
     def get_thumbnail(self, urn: str, width: int = None, height: int = None) -> bytes:
         """

@@ -217,7 +217,7 @@ class OSSClient(BaseOAuthClient):
         headers = {
             "x-ads-region": region
         }
-        return self._post("/buckets", WRITE_SCOPES, json=json, headers=headers).json()
+        return self._post("/buckets", scopes=WRITE_SCOPES, json=json, headers=headers).json()
 
     def delete_bucket(self, bucket_key: str):
         """
