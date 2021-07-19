@@ -175,7 +175,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         if &#34;force&#34; in kwargs:
             headers[&#34;x-ads-force&#34;] = &#34;true&#34;
         # TODO: what about the EMEA endpoint?
-        return self._post(&#34;/designdata/job&#34;, WRITE_SCOPES, json=json, headers=headers).json()
+        return self._post(&#34;/designdata/job&#34;, scopes=WRITE_SCOPES, json=json, headers=headers).json()
 
     def get_thumbnail(self, urn: str, width: int = None, height: int = None) -&gt; bytes:
         &#34;&#34;&#34;
@@ -499,7 +499,7 @@ print(encoded)
 <dl>
 <dt id="autodesk_forge_sdk.md.ModelDerivativeClient"><code class="flex name class">
 <span>class <span class="ident">ModelDerivativeClient</span></span>
-<span>(</span><span>token_provider: <<a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a> object at 0x7fd1d8db3ac0>, base_url: str = 'https://developer.api.autodesk.com/modelderivative/v2')</span>
+<span>(</span><span>token_provider: <<a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a> object at 0x7f48e9e0e820>, base_url: str = 'https://developer.api.autodesk.com/modelderivative/v2')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Forge Model Derivative service client.</p>
@@ -648,7 +648,7 @@ client3 = ModelDerivativeClient(MyTokenProvider())
         if &#34;force&#34; in kwargs:
             headers[&#34;x-ads-force&#34;] = &#34;true&#34;
         # TODO: what about the EMEA endpoint?
-        return self._post(&#34;/designdata/job&#34;, WRITE_SCOPES, json=json, headers=headers).json()
+        return self._post(&#34;/designdata/job&#34;, scopes=WRITE_SCOPES, json=json, headers=headers).json()
 
     def get_thumbnail(self, urn: str, width: int = None, height: int = None) -&gt; bytes:
         &#34;&#34;&#34;
@@ -1597,7 +1597,7 @@ print(job)
     if &#34;force&#34; in kwargs:
         headers[&#34;x-ads-force&#34;] = &#34;true&#34;
     # TODO: what about the EMEA endpoint?
-    return self._post(&#34;/designdata/job&#34;, WRITE_SCOPES, json=json, headers=headers).json()</code></pre>
+    return self._post(&#34;/designdata/job&#34;, scopes=WRITE_SCOPES, json=json, headers=headers).json()</code></pre>
 </details>
 </dd>
 </dl>

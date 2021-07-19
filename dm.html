@@ -246,7 +246,7 @@ class OSSClient(BaseOAuthClient):
         headers = {
             &#34;x-ads-region&#34;: region
         }
-        return self._post(&#34;/buckets&#34;, WRITE_SCOPES, json=json, headers=headers).json()
+        return self._post(&#34;/buckets&#34;, scopes=WRITE_SCOPES, json=json, headers=headers).json()
 
     def delete_bucket(self, bucket_key: str):
         &#34;&#34;&#34;
@@ -1183,7 +1183,7 @@ each of them will have its own retention period of 24 hours.</p></div>
 </dd>
 <dt id="autodesk_forge_sdk.dm.OSSClient"><code class="flex name class">
 <span>class <span class="ident">OSSClient</span></span>
-<span>(</span><span>token_provider: <<a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a> object at 0x7fd1d8db3670>, base_url: str = 'https://developer.api.autodesk.com/oss/v2')</span>
+<span>(</span><span>token_provider: <<a title="autodesk_forge_sdk.auth.TokenProviderInterface" href="auth.html#autodesk_forge_sdk.auth.TokenProviderInterface">TokenProviderInterface</a> object at 0x7f48e9e0e400>, base_url: str = 'https://developer.api.autodesk.com/oss/v2')</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Forge Data Management object storage client.</p>
@@ -1393,7 +1393,7 @@ client3 = OSSClient(MyTokenProvider())
         headers = {
             &#34;x-ads-region&#34;: region
         }
-        return self._post(&#34;/buckets&#34;, WRITE_SCOPES, json=json, headers=headers).json()
+        return self._post(&#34;/buckets&#34;, scopes=WRITE_SCOPES, json=json, headers=headers).json()
 
     def delete_bucket(self, bucket_key: str):
         &#34;&#34;&#34;
@@ -1632,7 +1632,7 @@ print(details)
     headers = {
         &#34;x-ads-region&#34;: region
     }
-    return self._post(&#34;/buckets&#34;, WRITE_SCOPES, json=json, headers=headers).json()</code></pre>
+    return self._post(&#34;/buckets&#34;, scopes=WRITE_SCOPES, json=json, headers=headers).json()</code></pre>
 </details>
 </dd>
 <dt id="autodesk_forge_sdk.dm.OSSClient.delete_bucket"><code class="name flex">
