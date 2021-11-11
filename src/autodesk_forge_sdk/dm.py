@@ -3,6 +3,7 @@ Clients for working with the Forge Data Management service.
 """
 
 from enum import Enum
+from typing import Dict, List
 from urllib.parse import quote
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
@@ -80,7 +81,7 @@ class OSSClient(BaseOAuthClient):
         """
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
-    def _get_paginated(self, url: str, **kwargs) -> list:
+    def _get_paginated(self, url: str, **kwargs) -> List:
         items = []
         while url:
             json = self._get(url, **kwargs).json()
@@ -91,7 +92,7 @@ class OSSClient(BaseOAuthClient):
                 url = None
         return items
 
-    def get_buckets(self, region: str = None, limit: int = None, start_at: str = None) -> dict:
+    def get_buckets(self, region: str = None, limit: int = None, start_at: str = None) -> Dict:
         """
         List buckets owned by the application, using pagination.
 
@@ -127,7 +128,7 @@ class OSSClient(BaseOAuthClient):
             params["startAt"] = start_at
         return self._get("/buckets", scopes=READ_SCOPES, params=params).json()
 
-    def get_all_buckets(self, region: str = None) -> list:
+    def get_all_buckets(self, region: str = None) -> List[Dict]:
         """
         List all buckets owned by the application. Similar to `OSSClient.get_buckets`
         but returning all results without pagination.
@@ -139,7 +140,7 @@ class OSSClient(BaseOAuthClient):
                 Acceptable values: US, EMEA. Default: US.
 
         Returns:
-            list[dict]: List of objects representing individual buckets.
+            List[Dict]: List of objects representing individual buckets.
 
         Examples:
             ```
@@ -155,7 +156,7 @@ class OSSClient(BaseOAuthClient):
             params["region"] = region
         return self._get_paginated("/buckets", scopes=READ_SCOPES, params=params)
 
-    def get_bucket_details(self, bucket_key: str) -> dict:
+    def get_bucket_details(self, bucket_key: str) -> Dict:
         """
         Get bucket details in JSON format if the caller is the owner of the bucket.
         A request by any other application will result in a response of 403 Forbidden.
@@ -181,7 +182,7 @@ class OSSClient(BaseOAuthClient):
 
     def create_bucket(
         self, bucket_key: str, data_retention_policy: DataRetention, region: str
-    ) -> dict:
+    ) -> Dict:
         """
         Create a bucket. Buckets are arbitrary spaces that are created by applications
         and are used to store objects for later retrieval. A bucket is owned by the application
@@ -232,7 +233,7 @@ class OSSClient(BaseOAuthClient):
         endpoint = "/buckets/{}".format(quote(bucket_key))
         self._delete(endpoint, scopes=DELETE_SCOPES)
 
-    def get_objects(self, bucket_key: str, **kwargs) -> dict:
+    def get_objects(self, bucket_key: str, **kwargs) -> Dict:
         """
         List objects in bucket, using pagination. It is only available to the bucket creator.
 
@@ -248,7 +249,7 @@ class OSSClient(BaseOAuthClient):
             start_at (str, optional): Position to start listing the result set.
 
         Returns:
-            dict: Parsed response object with top-level properties `items` and `next`.
+            Dict: Parsed response object with top-level properties `items` and `next`.
 
         Examples:
             ```
@@ -271,7 +272,7 @@ class OSSClient(BaseOAuthClient):
         endpoint = "/buckets/{}/objects".format(quote(bucket_key))
         return self._get(endpoint, scopes=READ_SCOPES, params=params).json()
 
-    def get_all_objects(self, bucket_key: str, begins_with: str = None) -> list:
+    def get_all_objects(self, bucket_key: str, begins_with: str = None) -> List:
         """
         List all objects in bucket. Similar to `OSSClient.get_objects` but returning
         all results without pagination.
@@ -281,7 +282,7 @@ class OSSClient(BaseOAuthClient):
                 is restricted to items whose objectKey begins with the provided string.
 
         Returns:
-            list[dict]: List of objects.
+            List[Dict]: List of objects.
 
         Examples:
             ```
@@ -299,7 +300,7 @@ class OSSClient(BaseOAuthClient):
         endpoint = "/buckets/{}/objects".format(quote(bucket_key))
         return self._get_paginated(endpoint, scopes=READ_SCOPES, params=params)
 
-    def get_object_details(self, bucket_key: str, object_key: str) -> dict:
+    def get_object_details(self, bucket_key: str, object_key: str) -> Dict:
         """
         Get object details in JSON format.
 
@@ -326,7 +327,7 @@ class OSSClient(BaseOAuthClient):
         endpoint = "/buckets/{}/objects/{}".format(quote(bucket_key), quote(object_key))
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def upload_object(self, bucket_key: str, object_key: str, buff) -> list:
+    def upload_object(self, bucket_key: str, object_key: str, buff) -> Dict:
         """
         Upload an object. If the specified object name already exists in the bucket,
         the uploaded content will overwrite the existing content for the bucket name/object
@@ -341,7 +342,7 @@ class OSSClient(BaseOAuthClient):
             buff (list of bytes or file): Content to upload.
 
         Returns:
-            dict: Parsed response JSON with object properties.
+            Dict: Parsed response JSON with object properties.
 
         Examples:
             ```
@@ -408,7 +409,7 @@ class DataManagementClient(BaseOAuthClient):
         """
         BaseOAuthClient.__init__(self, token_provider, base_url)
 
-    def _get_paginated(self, url: str, **kwargs) -> list:
+    def _get_paginated(self, url: str, **kwargs) -> List:
         json = self._get(url, **kwargs).json()
         results = json["data"]
         while "links" in json and "next" in json["links"]:
@@ -417,7 +418,7 @@ class DataManagementClient(BaseOAuthClient):
             results = results + json["data"]
         return results
 
-    def get_hubs(self, filter_id: str=None, filter_name: str=None) -> dict:
+    def get_hubs(self, filter_id: str=None, filter_name: str=None) -> Dict:
         """
         Return a collection of accessible hubs for this member.
 
@@ -456,7 +457,7 @@ class DataManagementClient(BaseOAuthClient):
             params["filter[name]"] = filter_name
         return self._get("/hubs", scopes=READ_SCOPES, headers=headers, params=params).json()
 
-    def get_all_hubs(self, filter_id: str=None, filter_name: str=None) -> dict:
+    def get_all_hubs(self, filter_id: str=None, filter_name: str=None) -> Dict:
         """
         Similar to `get_hubs`, but retrieving all hubs without pagination.
 
@@ -467,7 +468,7 @@ class DataManagementClient(BaseOAuthClient):
             filter_name (str, optional): Name to filter the results by.
 
         Returns:
-            list(dict): List of hubs parsed from the response JSON.
+            List(Dict): List of hubs parsed from the response JSON.
 
         Examples:
             ```
@@ -486,7 +487,7 @@ class DataManagementClient(BaseOAuthClient):
         return self._get_paginated("/hubs", scopes=READ_SCOPES, headers=headers, params=params)
 
     def get_projects(
-        self, hub_id: str, filter_id: str=None, page_number: int=None, page_limit=None) -> dict:
+        self, hub_id: str, filter_id: str=None, page_number: int=None, page_limit=None) -> Dict:
         """
         Return a collection of projects for a given hub_id. A project represents a BIM 360
         Team project, a Fusion Team project, a BIM 360 Docs project, or an A360 Personal project.
@@ -514,7 +515,7 @@ class DataManagementClient(BaseOAuthClient):
                 The max value is 200.
 
         Returns:
-            dict: Parsed response JSON.
+            Dict: Parsed response JSON.
 
         Examples:
             ```
@@ -536,7 +537,7 @@ class DataManagementClient(BaseOAuthClient):
         endpoint = "/hubs/{}/projects".format(hub_id)
         return self._get(endpoint, scopes=READ_SCOPES, headers=headers, params=params).json()
 
-    def get_all_projects(self, hub_id: str, filter_id: str=None) -> dict:
+    def get_all_projects(self, hub_id: str, filter_id: str=None) -> List[Dict]:
         """
         Similar to `get_projects`, but retrieving all projects without pagination.
 
@@ -547,7 +548,7 @@ class DataManagementClient(BaseOAuthClient):
             hub_id (str): ID of a hub to list the projects for.
 
         Returns:
-            list(dict): List of projects parsed from the response JSON.
+            List(Dict): List of projects parsed from the response JSON.
 
         Examples:
             ```

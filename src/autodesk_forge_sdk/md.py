@@ -3,6 +3,7 @@ Clients for working with the Forge Model Derivative service.
 """
 
 import base64
+from typing import Dict, List, Tuple
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = "https://developer.api.autodesk.com/modelderivative/v2"
@@ -93,7 +94,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         """
         return self._get("/designdata/formats", scopes=[]).json()
 
-    def submit_job(self, urn: str, output_formats: list[dict], **kwargs) -> dict:
+    def submit_job(self, urn: str, output_formats: List[Dict], **kwargs) -> Dict:
         """
         Translate a design from one format to another format.
 
@@ -112,7 +113,7 @@ class ModelDerivativeClient(BaseOAuthClient):
                 that has already been translated before.
 
         Returns:
-            dict: Parsed response JSON.
+            Dict: Parsed response JSON.
 
         Examples:
             ```
@@ -192,7 +193,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         endpoint = "/designdata/{}/thumbnail".format(urn)
         return self._get(endpoint, scopes=READ_SCOPES, params=params).content
 
-    def get_manifest(self, urn: str) -> dict:
+    def get_manifest(self, urn: str) -> Dict:
         """
         Retrieve the manifest for the source design specified by the urn URI parameter.
         The manifest is a list containing information about the derivatives generated
@@ -206,7 +207,7 @@ class ModelDerivativeClient(BaseOAuthClient):
             urn (str): Base64-encoded ID of the source file.
 
         Returns:
-            dict: Parsed manifest JSON.
+            Dict: Parsed manifest JSON.
 
         Examples:
             ```
@@ -247,7 +248,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         endpoint = "/designdata/{}/manifest".format(urn)
         self._delete(endpoint, scopes=WRITE_SCOPES)
 
-    def get_metadata(self, urn: str) -> dict:
+    def get_metadata(self, urn: str) -> Dict:
         """
         Returns a list of model view (metadata) IDs for a design model. The metadata ID enables
         end users to select an object tree and properties for a specific model view.
@@ -259,7 +260,7 @@ class ModelDerivativeClient(BaseOAuthClient):
             urn (str): Base64-encoded ID of the source file.
 
         Returns:
-            dict: Parsed response JSON.
+            Dict: Parsed response JSON.
 
         Examples:
             ```
@@ -276,7 +277,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         endpoint = "/designdata/{}/metadata".format(urn)
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def get_viewable_tree(self, urn: str, guid: str) -> dict:
+    def get_viewable_tree(self, urn: str, guid: str) -> Dict:
         """
         Return an object tree, i.e., a hierarchical list of objects for a model view.
 
@@ -288,7 +289,7 @@ class ModelDerivativeClient(BaseOAuthClient):
             guid (str): ID of one of the viewables extracted from the source file.
 
         Returns:
-            dict: Parsed response JSON.
+            Dict: Parsed response JSON.
 
         Examples:
             ```
@@ -305,7 +306,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         endpoint = "/designdata/{}/metadata/{}".format(urn, guid)
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def get_viewable_properties(self, urn: str, guid: str) -> dict:
+    def get_viewable_properties(self, urn: str, guid: str) -> Dict:
         """
         Return a list of properties for each object in an object tree. Properties are returned
         according to object ID and do not follow a hierarchical structure.
@@ -318,7 +319,7 @@ class ModelDerivativeClient(BaseOAuthClient):
             guid (str): ID of one of the viewables extracted from the source file.
 
         Returns:
-            dict: Parsed response JSON.
+            Dict: Parsed response JSON.
 
         Examples:
             ```
@@ -334,7 +335,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         endpoint = "/designdata/{}/metadata/{}/properties".format(urn, guid)
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def get_derivative_info(self, urn: str, deriv_urn: str) -> dict:
+    def get_derivative_info(self, urn: str, deriv_urn: str) -> Dict:
         """
         Return information about the specified derivative.
 
@@ -346,7 +347,7 @@ class ModelDerivativeClient(BaseOAuthClient):
             deriv_urn (str): ID of one of the derivatives generated from the source file.
 
         Returns:
-            dict: Derivative information, currently with just a single property, "size",
+            Dict: Derivative information, currently with just a single property, "size",
             indicating the size of the derivative in bytes.
         """
         # TODO: what about the EMEA endpoint?
@@ -354,7 +355,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         resp = self._head(endpoint, scopes=READ_SCOPES)
         return { "size": int(resp.headers["Content-Length"]) }
 
-    def get_derivative(self, urn: str, deriv_urn: str, byte_range: tuple=None) -> bytes:
+    def get_derivative(self, urn: str, deriv_urn: str, byte_range: Tuple = None) -> bytes:
         """
         Download a derivative generated from a specific source model. To download the derivative,
         you need to specify its URN which can be retrieved from the Model Derivative manifest.
