@@ -36,7 +36,7 @@ class BaseClient:
         response = None
         if form:
             response = requests.post(url, data=form, **kwargs)
-        elif form:
+        elif buff:
             response = requests.post(url, data=buff, **kwargs)
         elif json:
             response = requests.post(url, json=json, **kwargs)
