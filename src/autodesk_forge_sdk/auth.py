@@ -4,7 +4,7 @@ Clients for working with the Forge Authentication service.
 
 from enum import Enum
 from datetime import datetime, timedelta
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
 from .base import BaseClient
 
 BASE_URL = "https://developer.api.autodesk.com/authentication/v1"
@@ -117,14 +117,13 @@ def get_authorization_url(
         print(url)
         ```
     """
-    url = 'https://developer.api.autodesk.com/authentication/v1/authorize'
-    url = url + '?client_id={}'.format(quote(client_id))
-    url = url + '&response_type={}'.format(response_type)
-    url = url + '&redirect_uri={}'.format(quote(redirect_uri))
-    url = url + \
-        '&scope={}'.format(quote(' '.join(map(lambda s: s.value, scopes))))
+    url = "https://developer.api.autodesk.com/authentication/v1/authorize"
+    url += f"?response_type={quote(response_type)}"
+    url += f"&client_id={quote(client_id)}"
+    url += f"&redirect_uri={quote_plus(redirect_uri)}"
+    url += f"&scope={'%20'.join(map(lambda s: s.value, scopes))}"
     if state:
-        url += '&state={}'.format(quote(state))
+        url += f"&state={state}"
     return url
 
 
