@@ -4,7 +4,6 @@ Clients for working with the Forge Data Management service.
 from os import path
 from enum import Enum
 from typing import Union
-from urllib.parse import quote
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = "https://developer.api.autodesk.com"
@@ -12,7 +11,6 @@ OSS_BASE_URL = f"{BASE_URL}/oss/v2"
 DATA_MANAGEMENT_DATA_URL = f"{BASE_URL}/data/v1"
 DATA_MANAGEMENT_PROJECT_URL = f"{BASE_URL}/project/v1"
 DOCUMENT_MANAGEMENT_URL = f"{BASE_URL}/bim360/docs/v1"
-#DATA_MANAGEMENT_BASE_URL = "https://developer.api.autodesk.com/project/v1"
 READ_SCOPES = [Scope.BUCKET_READ, Scope.DATA_READ]
 WRITE_SCOPES = [Scope.BUCKET_CREATE, Scope.DATA_CREATE, Scope.DATA_WRITE]
 DELETE_SCOPES = [Scope.BUCKET_DELETE]
@@ -181,7 +179,7 @@ class OSSClient(BaseOAuthClient):
             print(details)
             ```
         """
-        endpoint = "/buckets/{}/details".format(quote(bucket_key))
+        endpoint = f"/buckets/{bucket_key}/details"
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
     def create_bucket(
@@ -234,7 +232,7 @@ class OSSClient(BaseOAuthClient):
         Args:
             bucket_key (str): Name of the bucket to be deleted.
         """
-        endpoint = "/buckets/{}".format(quote(bucket_key))
+        endpoint = f"/buckets/{bucket_key}"
         self._delete(endpoint, scopes=DELETE_SCOPES)
 
     def get_objects(self, bucket_key: str, **kwargs) -> dict:
@@ -273,7 +271,7 @@ class OSSClient(BaseOAuthClient):
             params["beginsWith"] = kwargs["begins_with"]
         if "start_at" in kwargs:
             params["startAt"] = kwargs["start_at"]
-        endpoint = "/buckets/{}/objects".format(quote(bucket_key))
+        endpoint = f"/buckets/{bucket_key}"
         return self._get(endpoint, scopes=READ_SCOPES, params=params).json()
 
     def get_all_objects(self, bucket_key: str, begins_with: str = None) -> list:
@@ -301,7 +299,7 @@ class OSSClient(BaseOAuthClient):
         params = {}
         if begins_with:
             params["beginsWith"] = begins_with
-        endpoint = "/buckets/{}/objects".format(quote(bucket_key))
+        endpoint = f"/buckets/{bucket_key}"
         return self._get_paginated(endpoint, scopes=READ_SCOPES, params=params)
 
     def get_object_details(self, bucket_key: str, object_key: str) -> dict:
@@ -328,7 +326,7 @@ class OSSClient(BaseOAuthClient):
             print(details)
             ```
         """
-        endpoint = "/buckets/{}/objects/{}".format(quote(bucket_key), quote(object_key))
+        endpoint = f"/buckets/{bucket_key}/objects/{object_key}"
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
     def upload_object(self, bucket_key: str, object_key: str, buff) -> list:
@@ -362,7 +360,7 @@ class OSSClient(BaseOAuthClient):
                 print(obj2)
             ```
         """
-        endpoint = "/buckets/{}/objects/{}".format(quote(bucket_key), quote(object_key))
+        endpoint = f"/buckets/{bucket_key}/objects/{object_key}"
         return self._put(endpoint, buff=buff, scopes=WRITE_SCOPES).json()
 
     def delete_object(self, bucket_key: str, object_key: str):
@@ -376,13 +374,14 @@ class OSSClient(BaseOAuthClient):
             bucket_key (str): Bucket key.
             object_key (str): Name of the object to be removed.
         """
-        endpoint = "/buckets/{}/objects/{}".format(quote(bucket_key), quote(object_key))
+        endpoint = f"/buckets/{bucket_key}/objects/{object_key}"
         self._delete(endpoint, scopes=DELETE_SCOPES)
     
     def get_signeds3upload(self, bucket_key: str, object_key: str):
 
         '''
-        Requests an S3 signed URL with which to upload an object, or an array of signed URLs with which to upload an object in multiple parts.
+        Requests an S3 signed URL with which to upload an object, or an array of signed URLs with
+        which to upload an object in multiple parts.
 
         **Documentation**:
         https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectKey-signeds3upload-GET/
@@ -399,23 +398,22 @@ class OSSClient(BaseOAuthClient):
     def post_signeds3upload(self, bucket_key: str, object_key: str, upload_key: str):
 
         '''
-        Instructs OSS to complete the object creation process after the bytes have been uploaded directly to S3.
+        Instructs OSS to complete the object creation process after the bytes have been uploaded
+        directly to S3.
         **Documentation**:
         https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectKey-signeds3upload-POST/
 
         Args:
             bucket_key (str): Bucket key.
             object_key (str): Name of the object to be removed.
-            upload_key (str): The identifier of the upload session, which was provided by OSS in the response to the Get Upload URL/s request..
+            upload_key (str): The identifier of the upload session, which was provided by OSS in the
+            response to the Get Upload URL/s request..
 
         '''
 
         body = {"uploadKey":upload_key}
 
-        # url = f' https://developer.api.autodesk.com/oss/v2/buckets/{bucket_key}/objects/{object_key}/signeds3upload'
-        # headers = {'Authorization': f'Bearer {token}'}
         endpoint = f"/buckets/{bucket_key}/objects/{object_key}/signeds3upload"
-        
         return self._post(endpoint, json=body, scopes=WRITE_SCOPES).json()
 
 
@@ -466,15 +464,13 @@ class DocumentManagementClient(BaseOAuthClient):
     
     def get_naming_standard(self, project_id: str, naming_standard_ids: Union[list, dict]) -> dict:
         """
-        retrieving naming standard from namingStandardId.
+        Retrieves the file naming standard for a project..
 
         **Documentation**: https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-naming-standards-id-GET/
 
         Args:
             project_id (str, required): project ID
             naming_standard_id (str, required): naming standard ID.
-            filter_id (str, optional): ID to filter the results by.
-            filter_name (str, optional): Name to filter the results by.
 
         Returns:
             list(dict): List of hubs parsed from the response JSON.
@@ -492,37 +488,34 @@ class DocumentManagementClient(BaseOAuthClient):
 
             naming_standard_ids: list = naming_standard_ids['attributes']['extension']['data']['namingStandardIds']
 
-
         # check if more than one naming standard is applied to folder.
-
-        assert len(naming_standard_ids) > 0, f'No namingStandard in list "{naming_standard_ids}"'
+        assert len(naming_standard_ids) > 0, f"No namingStandard in list '{naming_standard_ids}'"
 
         assert len(naming_standard_ids) <= 1, (
             'Assuming only one "file naming standard" '
             'per folder. Has ACC changed to support more than one? see: '
             'https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-naming-standards-id-GET/. '
-            f'INFO: {len(naming_standard_ids)} namings standard ids returned '
+            f"INFO: {len(naming_standard_ids)} namings standard ids returned "
             )
 
 
         headers = { "Content-Type": "application/vnd.api+json" }
 
-        return self._get(f"/projects/{project_id}/naming-standards/{naming_standard_ids[0]}", scopes=READ_SCOPES, headers=headers).json()
+        return self._get(f"/projects/{project_id}/naming-standards/{naming_standard_ids[0]}",
+            scopes=READ_SCOPES, headers=headers).json()
     
-    def get_custom_attribute_definitions(self, project_id, folder_id, filter_id: str=None, filter_name: str=None) -> dict:
+    def get_custom_attribute_definitions(self, project_id, folder_id) -> dict:
         """
         Retrieves a complete list of custom attribute definitions for all the documents
         in a specific folder, including custom attributes that have not been assigned a
         value, as well as the potential drop-down (array) values.
 
         **Documentation**:
-        https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-naming-standards-id-GET/
+        https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-custom-attribute-definitions-GET/
 
         Args:
             project_id (str, required): project ID
             folder_id (str, required): Folder ID where where namingstandard applies.
-            filter_id (str, optional): ID to filter the results by.
-            filter_name (str, optional): Name to filter the results by.
 
         Returns:
             dict: dictoionary of naming standard from the JSON response.
@@ -531,12 +524,9 @@ class DocumentManagementClient(BaseOAuthClient):
         
         """
         headers = { "Content-Type": "application/vnd.api+json" }
-        params = {}
-        if filter_id:
-            params["filter[id]"] = filter_id
-        if filter_name:
-            params["filter[name]"] = filter_name
-        return self._get(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/folders/{folder_id}/custom-attribute-definitions", scopes=READ_SCOPES, headers=headers, params=params).json()
+
+        return self._get(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/folders/{folder_id}/custom-attribute-definitions",
+        scopes=READ_SCOPES, headers=headers).json()
 
 
 class DataManagementClient(BaseOAuthClient):
@@ -730,7 +720,8 @@ class DataManagementClient(BaseOAuthClient):
 
     def get_folder(self, project_id: str, folder_id: str, filter_id: str=None) -> dict:
         """
-        Returns the folder by ID for any folder within a given project. All folders or sub-folders within a project are associated with their own unique ID, including the root folder.
+        Returns the folder by ID for any folder within a given project. All folders or sub-folders
+        within a project are associated with their own unique ID, including the root folder.
 
         **Documentation**:
             https://forge.autodesk.com/en/docs/data/v2/reference/http/projects-project_id-folders-folder_id-GET
@@ -759,7 +750,8 @@ class DataManagementClient(BaseOAuthClient):
     def get_content(self, project_id: str, folder_id: str, filter_id: str=None) -> dict:
         """
 
-        Returns a collection of items and folders within a folder. Items represent word documents, fusion design files, drawings, spreadsheets, etc.
+        Returns a collection of items and folders within a folder. Items represent word documents,
+        fusion design files, drawings, spreadsheets, etc.
         
         **Documentation**:
             https://forge.autodesk.com/en/docs/data/v2/reference/http/projects-project_id-folders-folder_id-contents-GET/
@@ -787,9 +779,10 @@ class DataManagementClient(BaseOAuthClient):
         endpoint = f"{DATA_MANAGEMENT_DATA_URL}/projects/{project_id}/folders/{folder_id}/contents"
         return self._get_paginated(endpoint, scopes=READ_SCOPES, headers=headers, params=params)
 
-    def get_item(self, project_id: str, item_id: str, filter_id: str=None) -> dict:
+    def get_item(self, project_id: str, item_id: str) -> dict:
         """
-        Retrieves metadata for a specified item. Items represent word documents, fusion design files, drawings, spreadsheets, etc.
+        Retrieves metadata for a specified item. Items represent word documents, fusion design
+        files, drawings, spreadsheets, etc.
 
         **Documentation**:
             https://forge.autodesk.com/en/docs/data/v2/reference/http/projects-project_id-items-item_id-GET/
@@ -810,15 +803,14 @@ class DataManagementClient(BaseOAuthClient):
             ```
         """
         headers = { "Content-Type": "application/vnd.api+json" }
-        params = {}
-        if filter_id:
-            params["filter[id]"] = filter_id
+
         endpoint = f"{DATA_MANAGEMENT_DATA_URL}/projects/{project_id}/items/{item_id}"
-        return self._get(endpoint, scopes=READ_SCOPES, headers=headers, params=params).json()
+        return self._get(endpoint, scopes=READ_SCOPES, headers=headers).json()
     
     def download_item(self, item: dict, location: str = '') -> dict:
         """
-        Retrieves metadata for a specified item. Items represent word documents, fusion design files, drawings, spreadsheets, etc.
+        Retrieves metadata for a specified item. Items represent word documents, fusion design
+        files, drawings, spreadsheets, etc.
 
         **Documentation**:
             https://forge.autodesk.com/en/docs/data/v2/reference/http/projects-project_id-items-item_id-GET/
@@ -839,13 +831,13 @@ class DataManagementClient(BaseOAuthClient):
         except Exception as exception:
             print('item has no storage link "included.relationships.storage.meta.link.href".', {exception})
 
-        assert len(item['included']) <= 1, 'More than one "included" object. This is not supported by forge-sdk-python.'
+        assert len(item['included']) <= 1, \
+            'More than one "included" object. This is not supportedby forge-sdk-python.'
 
         filename = item['data']['attributes']['displayName']
 
         headers = { "Content-Type": "application/vnd.api+json" }
 
-        #endpoint = f"{DATA_MANAGEMENT_DATA_URL}/projects/{project_id}/items/{item_id}"
         res = self._get(download_link, scopes=READ_SCOPES, headers=headers)
 
         with open(path.join(location, filename), 'wb') as file:
@@ -867,12 +859,6 @@ class DataManagementClient(BaseOAuthClient):
         Returns:
             dict: Dict of folders parsed from the response JSON.
         '''
-        # The POST projects/:project_id/storage endpoint creates a storage location in the OSS.
-        # the object is like urn:adsk.objects:os.object:wip.dm.emea.2/47072f30-f04e-4a9f-939f-64114e16c050.docx
-        #logger.info(f'create_storage project_id: {project_id}, filename:{filename}, folder_id: {folder_id}')
-        #url = f'https://developer.api.autodesk.com/data/v1/projects/b.{project_id}/storage'
-        
-        #headers = {'Authorization': f'Bearer {token} ', 'Content-Type': 'application/json'} # Content-Type: application/vnd.api+json
 
         body = { "jsonapi": { "version": "1.0" }, "data": {  "type": "objects",
                         "attributes": {
@@ -894,7 +880,7 @@ class DataManagementClient(BaseOAuthClient):
         return self._post(endpoint, scopes=WRITE_SCOPES, headers=headers, json=body).json()
 
 
-    def new_file_version(self, project_id, filename, item_id, object_id, type):
+    def new_file_version(self, project_id, filename, item_id, object_id, resource_type):
 
         '''
         Creates new versions of a file (item), except for the first version of the item.
@@ -917,7 +903,7 @@ class DataManagementClient(BaseOAuthClient):
                 "type": "versions",
                 "attributes": {
                     "name": filename,
-                    "extension": {"type": type, "version": "1.0"}
+                    "extension": {"type": resource_type, "version": "1.0"}
                 },
                 "relationships": {
                     "item": {"data": {"type": "items", "id": item_id}},
@@ -930,5 +916,5 @@ class DataManagementClient(BaseOAuthClient):
 
         headers = { "Content-Type": "application/vnd.api+json" }
         
-        endpoint = f' {DATA_MANAGEMENT_DATA_URL}/projects/{project_id}/versions'
+        endpoint = f"{DATA_MANAGEMENT_DATA_URL}/projects/{project_id}/versions"
         return self._post(endpoint, scopes=WRITE_SCOPES, headers=headers, json=body).json()
