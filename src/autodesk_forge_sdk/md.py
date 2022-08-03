@@ -3,6 +3,7 @@ Clients for working with the Forge Model Derivative service.
 """
 
 import base64
+from typing import List
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = "https://developer.api.autodesk.com/modelderivative/v2"
@@ -93,7 +94,7 @@ class ModelDerivativeClient(BaseOAuthClient):
         """
         return self._get("/designdata/formats", scopes=[]).json()
 
-    def submit_job(self, urn: str, output_formats: list[dict], **kwargs) -> dict:
+    def submit_job(self, urn: str, output_formats: List[dict], **kwargs) -> dict:
         """
         Translate a design from one format to another format.
 
@@ -102,7 +103,7 @@ class ModelDerivativeClient(BaseOAuthClient):
 
         Args:
             urn (str): Base64-encoded ID of the object to translate.
-            output_formats (list[dict]): List of objects representing all the requested outputs.
+            output_formats (List[dict]): List of objects representing all the requested outputs.
                 Each object should have at least `type` property set to "svf", "svf2", etc.
             output_region (str): Output region. Allowed values: "US", "EMEA".
             root_filename (str, optional): Starting filename if the converted file is a ZIP archive.
