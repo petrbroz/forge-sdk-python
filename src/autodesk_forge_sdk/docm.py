@@ -1,0 +1,124 @@
+"""
+Clients for working with the Forge Document Management service.
+"""
+# from os import path
+# from enum import Enum
+from typing import Union
+from .auth import BaseOAuthClient, Scope, TokenProviderInterface
+
+BASE_URL = "https://developer.api.autodesk.com"
+DOCUMENT_MANAGEMENT_URL = f"{BASE_URL}/bim360/docs/v1"
+READ_SCOPES = [Scope.BUCKET_READ, Scope.DATA_READ]
+WRITE_SCOPES = [Scope.BUCKET_CREATE, Scope.DATA_CREATE, Scope.DATA_WRITE]
+DELETE_SCOPES = [Scope.BUCKET_DELETE]
+
+class DocumentManagementClient(BaseOAuthClient):
+    """
+    Forge Document Management client.
+
+    **Documentation**: https://forge.autodesk.com/en/docs/data/v2/reference/http
+    """
+
+    def __init__(
+        self, token_provider: TokenProviderInterface):
+        """
+        Create new instance of the client.
+
+        Args:
+            token_provider (autodesk_forge_sdk.auth.TokenProviderInterface):
+                Provider that will be used to generate access tokens for API calls.
+
+                Use `autodesk_forge_sdk.auth.OAuthTokenProvider` if you have your app's client ID
+                and client secret available, `autodesk_forge_sdk.auth.SimpleTokenProvider`
+                if you would like to use an existing access token instead, or even your own
+                implementation of the `autodesk_forge_sdk.auth.TokenProviderInterface` interface.
+
+                Note that many APIs in the Forge Data Management service require
+                a three-legged OAuth token.
+            base_url (str, optional): Base URL for API calls.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ["THREE_LEGGED_TOKEN"]
+            client = DataManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            ```
+        """
+        BaseOAuthClient.__init__(self, token_provider, DOCUMENT_MANAGEMENT_URL)
+
+    def _get_paginated(self, url: str, **kwargs) -> list:
+        items = []
+        while url:
+            json = self._get(url, **kwargs).json()
+            items = items + json["items"]
+            if "next" in json:
+                url = json["next"]
+            else:
+                url = None
+        return items
+
+    
+    def get_naming_standard(self, project_id: str, naming_standard_ids: Union[list, dict]) -> dict:
+        """
+        Retrieves the file naming standard for a project..
+
+        **Documentation**: https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-naming-standards-id-GET/
+
+        Args:
+            project_id (str, required): project ID
+            naming_standard_id (str, required): naming standard ID.
+
+        Returns:
+            list(dict): List of hubs parsed from the response JSON.
+
+        Examples:
+            ```
+            THREE_LEGGED_TOKEN = os.environ["THREE_LEGGED_TOKEN"]
+            client = DocumentManagementClient(SimpleTokenProvider(THREE_LEGGED_TOKEN))
+            naming_standard = client.get_naming_standard(project_id, naming_standard_id)
+            print(naming_standard)
+            ```
+        """
+
+        if isinstance(naming_standard_ids, dict):
+
+            naming_standard_ids: list = naming_standard_ids['attributes']['extension']['data']['namingStandardIds']
+
+        # check if more than one naming standard is applied to folder.
+        assert len(naming_standard_ids) > 0, f"No namingStandard in list '{naming_standard_ids}'"
+
+        assert len(naming_standard_ids) <= 1, (
+            'Assuming only one "file naming standard" '
+            'per folder. Has ACC changed to support more than one? see: '
+            'https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-naming-standards-id-GET/. '
+            f"INFO: {len(naming_standard_ids)} namings standard ids returned "
+            )
+
+
+        headers = { "Content-Type": "application/vnd.api+json" }
+
+        return self._get(f"/projects/{project_id}/naming-standards/{naming_standard_ids[0]}",
+            scopes=READ_SCOPES, headers=headers).json()
+    
+    def get_custom_attribute_definitions(self, project_id, folder_id) -> dict:
+        """
+        Retrieves a complete list of custom attribute definitions for all the documents
+        in a specific folder, including custom attributes that have not been assigned a
+        value, as well as the potential drop-down (array) values.
+
+        **Documentation**:
+        https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-custom-attribute-definitions-GET/
+
+        Args:
+            project_id (str, required): project ID
+            folder_id (str, required): Folder ID where where namingstandard applies.
+
+        Returns:
+            dict: dictoionary of naming standard from the JSON response.
+
+
+        
+        """
+        headers = { "Content-Type": "application/vnd.api+json" }
+
+        return self._get(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/folders/{folder_id}/custom-attribute-definitions",
+        scopes=READ_SCOPES, headers=headers).json()
