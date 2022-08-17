@@ -142,7 +142,7 @@ class OSSClient(BaseOAuthClient):
                 Acceptable values: US, EMEA. Default: US.
 
         Returns:
-            List[dict]: List of objects representing individual buckets.
+            list[dict]: List of objects representing individual buckets.
 
         Examples:
             ```
@@ -284,7 +284,7 @@ class OSSClient(BaseOAuthClient):
                 is restricted to items whose objectKey begins with the provided string.
 
         Returns:
-            List[dict]: List of objects.
+            list[dict]: List of objects.
 
         Examples:
             ```
