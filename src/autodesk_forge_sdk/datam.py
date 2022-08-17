@@ -3,6 +3,7 @@ Clients for working with the Forge Data Management service.
 """
 from os import path
 from enum import Enum
+from typing import List
 from typing import Union
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
@@ -141,7 +142,7 @@ class OSSClient(BaseOAuthClient):
                 Acceptable values: US, EMEA. Default: US.
 
         Returns:
-            list[dict]: List of objects representing individual buckets.
+            List[dict]: List of objects representing individual buckets.
 
         Examples:
             ```
@@ -283,7 +284,7 @@ class OSSClient(BaseOAuthClient):
                 is restricted to items whose objectKey begins with the provided string.
 
         Returns:
-            list[dict]: List of objects.
+            List[dict]: List of objects.
 
         Examples:
             ```
@@ -741,6 +742,7 @@ class DataManagementClient(BaseOAuthClient):
             project_id (str): ID of a project to get item metadata for.
             filename (str): Displayable name of the resource.
             resource_id (str): The id of the resource.
+            target_type (str): The type of this resource. Possible values: "folders", "items".
 
         Returns:
             dict: Dict of folders parsed from the response JSON.
@@ -778,23 +780,35 @@ class DataManagementClient(BaseOAuthClient):
             project_id (str): ID of a project to get item metadata for.
             filename (str): Displayable name of the resource.
             object_id (str): The id of the resource.
-            type (str): The id of the resource.
-
-        
+            resource_type (str): autodesk.bim360:File | autodesk.core:File | autodesk.CompositeDesign:File
         '''
 
         body = {
-            "jsonapi": {"version": "1.0"},
+            "jsonapi": {
+                "version": "1.0"
+            },
             "data": {
                 "type": "versions",
                 "attributes": {
-                    "name": filename,
-                    "extension": {"type": resource_type, "version": "1.0"}
+                    "displayName": filename,
+                    "extension": {
+                        "type": f"versions:{resource_type}",
+                        "version": "1.0"
+                    }
                 },
                 "relationships": {
-                    "item": {"data": {"type": "items", "id": item_id}},
-                    "storage": {"data": {"type": "objects",
-                                         "id": object_id}}
+                    "item": {
+                        "data": {
+                            "type": "items",
+                            "id": item_id
+                        }
+                    },
+                    "storage": {
+                        "data": {
+                            "type": "objects",
+                            "id": object_id
+                        }
+                    }
                 }
             }
         }
@@ -804,3 +818,4 @@ class DataManagementClient(BaseOAuthClient):
         
         endpoint = f"{DATA_MANAGEMENT_DATA_URL}/projects/{project_id}/versions"
         return self._post(endpoint, scopes=WRITE_SCOPES, headers=headers, json=body).json()
+

@@ -57,7 +57,7 @@ class DocumentManagementClient(BaseOAuthClient):
         return items
 
     
-    def get_naming_standard(self, project_id: str, naming_standard_ids: Union[list, dict]) -> dict:
+    def get_naming_standard(self, project_id: str, naming_standard_ids: Union[str, dict]) -> dict:
         """
         Retrieves the file naming standard for a project..
 
@@ -82,6 +82,10 @@ class DocumentManagementClient(BaseOAuthClient):
         if isinstance(naming_standard_ids, dict):
 
             naming_standard_ids: list = naming_standard_ids['attributes']['extension']['data']['namingStandardIds']
+        
+        else:
+
+            naming_standard_ids: list = [naming_standard_ids]
 
         # check if more than one naming standard is applied to folder.
         assert len(naming_standard_ids) > 0, f"No namingStandard in list '{naming_standard_ids}'"
