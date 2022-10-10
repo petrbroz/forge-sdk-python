@@ -271,7 +271,7 @@ class OSSClient(BaseOAuthClient):
             params["beginsWith"] = kwargs["begins_with"]
         if "start_at" in kwargs:
             params["startAt"] = kwargs["start_at"]
-        endpoint = f"/buckets/{bucket_key}"
+        endpoint = f"/buckets/{bucket_key}/objects"
         return self._get(endpoint, scopes=READ_SCOPES, params=params).json()
 
     def get_all_objects(self, bucket_key: str, begins_with: str = None) -> list:
@@ -299,7 +299,7 @@ class OSSClient(BaseOAuthClient):
         params = {}
         if begins_with:
             params["beginsWith"] = begins_with
-        endpoint = f"/buckets/{bucket_key}"
+        endpoint = f"/buckets/{bucket_key}/objects"
         return self._get_paginated(endpoint, scopes=READ_SCOPES, params=params)
 
     def get_object_details(self, bucket_key: str, object_key: str) -> dict:
@@ -307,7 +307,7 @@ class OSSClient(BaseOAuthClient):
         Get object details in JSON format.
 
         **Documentation**:
-            https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectName-details-GET
+            https://forge.autodesk.com/en/docs/data/v2/reference/http/buckets-:bucketKey-objects-:objectKey-details-GET
 
         Args:
             bucket_key (str): Bucket key.
@@ -326,7 +326,7 @@ class OSSClient(BaseOAuthClient):
             print(details)
             ```
         """
-        endpoint = f"/buckets/{bucket_key}/objects/{object_key}"
+        endpoint = f"/buckets/{bucket_key}/objects/{object_key}/details"
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
     def upload_object(self, bucket_key: str, object_key: str, buff) -> list:

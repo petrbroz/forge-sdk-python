@@ -30,7 +30,7 @@ class OSSClientTestSuite(unittest.TestCase):
     def test_get_all_objects(self):
         objects = self.client.get_all_objects(FORGE_BUCKET)
         assert objects
-
+    
     def test_upload_object_buff(self):
         buff = bytes('This is a test...', 'utf-8')
         obj = self.client.upload_object(FORGE_BUCKET, 'unittest.txt', buff)
@@ -40,6 +40,10 @@ class OSSClientTestSuite(unittest.TestCase):
         with open(__file__, 'rb') as file:
             obj = self.client.upload_object(FORGE_BUCKET, 'unittest.py', file)
             assert obj
+
+    def test_get_object_details(self):
+        details = self.client.get_object_details(FORGE_BUCKET, 'unittest.txt')
+        assert 'objectKey' in details
 
 class DataManagementTestSuite(unittest.TestCase):
     """Forge Data Management client test cases."""
