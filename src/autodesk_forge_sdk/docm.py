@@ -169,3 +169,24 @@ class DocumentManagementClient(BaseOAuthClient):
 
         return self._post(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/versions/{version_id}/custom-attributes:batch-update",
         scopes=READ_SCOPES, headers=headers, json=attributes).json()
+    
+    def get_folder_permissions(self, project_id, folder_id) -> dict:
+        """
+        Retrieves information about the permissions assigned to users, roles and companies for a BIM 360 Document Management folder,
+        including details about the name and the status.
+
+        **Documentation**:
+        https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-projects-project_id-folders-folder_id-permissions-GET/
+
+        Args:
+            project_id (str, required): The ID of the project. This corresponds to project ID in the Data Management API. To convert a project ID in the Data Management API into a project ID in the BIM 360 API you need to remove the “b.” prefix.
+            folder_id (str, required): The ID (URN) of the folder.
+
+        Returns:
+            dict: a list of dictionaries containing data on the users with access and their permissions
+
+        """
+        headers = { "Content-Type": "application/json" }
+
+        return self._get(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/folders/{folder_id}/permissions",
+        scopes=READ_SCOPES, headers=headers).json()
