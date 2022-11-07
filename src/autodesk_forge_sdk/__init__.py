@@ -8,3 +8,4 @@ from .datam import OSSClient, DataManagementClient
 from .md import ModelDerivativeClient, urnify
 from .docm import DocumentManagementClient
 from .accm import AccountManagementClient
+from .webhooks import WebhooksClient
