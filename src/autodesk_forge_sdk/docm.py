@@ -3,7 +3,7 @@ Clients for working with the Forge Document Management service.
 """
 # from os import path
 # from enum import Enum
-from typing import Union
+from typing import Dict, List, Union
 from urllib import request, parse
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
@@ -46,7 +46,7 @@ class DocumentManagementClient(BaseOAuthClient):
         """
         BaseOAuthClient.__init__(self, token_provider, DOCUMENT_MANAGEMENT_URL)
 
-    def _get_paginated(self, url: str, **kwargs) -> list:
+    def _get_paginated(self, url: str, **kwargs) -> List:
         items = []
         while url:
             json = self._get(url, **kwargs).json()
@@ -58,7 +58,7 @@ class DocumentManagementClient(BaseOAuthClient):
         return items
 
     
-    def get_naming_standard(self, project_id: str, naming_standard_ids: Union[str, dict]) -> dict:
+    def get_naming_standard(self, project_id: str, naming_standard_ids: Union[str, dict]) -> Dict:
         """
         Retrieves the file naming standard for a project..
 
@@ -104,7 +104,7 @@ class DocumentManagementClient(BaseOAuthClient):
         return self._get(f"/projects/{project_id}/naming-standards/{naming_standard_ids[0]}",
             scopes=READ_SCOPES, headers=headers).json()
     
-    def get_custom_attribute_definitions_for_docs(self, project_id: str, urns: list) -> dict:
+    def get_custom_attribute_definitions_for_docs(self, project_id: str, urns: list) -> Dict:
         """
         Retrieves a list of custom attribute values for multiple Document Management documents..
 
@@ -116,7 +116,7 @@ class DocumentManagementClient(BaseOAuthClient):
             urns (list, required): A list of version IDs or item IDs. If you use item IDs it retrieves the values for the latest (tip) versions. You can specify up to 50 documents.
 
         Returns:
-            dict: dictionary containing custom attribute.
+            Dict: dictionary containing custom attribute.
 
         """
         headers = { "Content-Type": "application/vnd.api+json" }
@@ -125,7 +125,7 @@ class DocumentManagementClient(BaseOAuthClient):
         return self._post(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/versions:batch-get",
         scopes=READ_SCOPES, headers=headers, json=data).json()
     
-    def get_custom_attribute_definitions(self, project_id, folder_id) -> dict:
+    def get_custom_attribute_definitions(self, project_id, folder_id) -> Dict:
         """
         Retrieves a complete list of custom attribute definitions for all the documents
         in a specific folder, including custom attributes that have not been assigned a
@@ -139,7 +139,7 @@ class DocumentManagementClient(BaseOAuthClient):
             folder_id (str, required): Folder ID where where namingstandard applies.
 
         Returns:
-            dict: dictoionary of naming standard from the JSON response.
+            Dict: dictoionary of naming standard from the JSON response.
 
         """
         headers = { "Content-Type": "application/vnd.api+json" }
@@ -147,7 +147,7 @@ class DocumentManagementClient(BaseOAuthClient):
         return self._get(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/folders/{folder_id}/custom-attribute-definitions",
         scopes=READ_SCOPES, headers=headers).json()
     
-    def batch_update_custom_attribute_definitions(self, project_id, version_id, attributes: dict) -> dict:
+    def batch_update_custom_attribute_definitions(self, project_id, version_id, attributes: dict) -> Dict:
         """
         Assigns values to custom attributes for multiple documents. This endpoint also clears custom attribute values.
 
@@ -160,7 +160,7 @@ class DocumentManagementClient(BaseOAuthClient):
             new_values (dict): new values for custom attributes. ex: [{"id": 1001,"value": "checked"},{"id": 1002,"value": "2020-03-31T16:00:00.000Z"}]
 
         Returns:
-            dict: dictionary of assigned values for the custom attributes .
+            Dict: dictionary of assigned values for the custom attributes .
 
         """
         version_id = parse.quote(version_id)
@@ -170,7 +170,7 @@ class DocumentManagementClient(BaseOAuthClient):
         return self._post(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/versions/{version_id}/custom-attributes:batch-update",
         scopes=READ_SCOPES, headers=headers, json=attributes).json()
     
-    def get_folder_permissions(self, project_id, folder_id) -> dict:
+    def get_folder_permissions(self, project_id, folder_id) -> Dict:
         """
         Retrieves information about the permissions assigned to users, roles and companies for a BIM 360 Document Management folder,
         including details about the name and the status.
@@ -183,7 +183,7 @@ class DocumentManagementClient(BaseOAuthClient):
             folder_id (str, required): The ID (URN) of the folder.
 
         Returns:
-            dict: a list of dictionaries containing data on the users with access and their permissions
+            Dict: a list of dictionaries containing data on the users with access and their permissions
 
         """
         headers = { "Content-Type": "application/json" }

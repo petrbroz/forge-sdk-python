@@ -3,7 +3,7 @@ Helper classes used by other API clients.
 """
 
 import requests
-
+from typing import Dict
 
 class BaseClient:
     """
@@ -30,7 +30,7 @@ class BaseClient:
         return response
 
     def _post(
-        self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs
+        self, url: str, form: Dict = None, json: Dict = None, buff=None, **kwargs
     ) -> requests.Response:
         url = self._resolve_url(url)
         response = None
@@ -46,7 +46,7 @@ class BaseClient:
         return response
 
     def _put(
-        self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs
+        self, url: str, form: Dict = None, json: Dict = None, buff=None, **kwargs
     ) -> requests.Response:
         url = self._resolve_url(url)
         response = None

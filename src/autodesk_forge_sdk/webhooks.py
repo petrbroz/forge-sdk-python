@@ -1,6 +1,8 @@
 """
 Clients for working with the Forge Webhooks service.
 """
+
+from typing import Dict, List
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = "https://developer.api.autodesk.com"
@@ -40,7 +42,7 @@ class WebhooksClient(BaseOAuthClient):
         """
         BaseOAuthClient.__init__(self, token_provider, WEBHOOKS_URL)
 
-    def _get_paginated(self, url: str, **kwargs) -> list:
+    def _get_paginated(self, url: str, **kwargs) -> List:
         items = []
         while url:
             json = self._get(url, **kwargs).json()
@@ -52,7 +54,7 @@ class WebhooksClient(BaseOAuthClient):
                 url = None
         return items
   
-    def get_webhooks(self, region: str = None) -> dict:
+    def get_webhooks(self, region: str = None) -> Dict:
         """
         Retrieves a paginated list of all the webhooks for a specified system.
         If the pageState query string is not specified, the first page is returned.
@@ -68,7 +70,7 @@ class WebhooksClient(BaseOAuthClient):
             PagingState instances are not portable and implementation is subject to change across versions.
             Default page size is 200.
         Returns:
-            dict: dictionary containing data on webhooks
+            Dict: dictionary containing data on webhooks
 
         """
         if region is None:
@@ -81,7 +83,7 @@ class WebhooksClient(BaseOAuthClient):
         return self._get_paginated(f"{WEBHOOKS_URL}/systems/data/hooks",
         scopes=READ_SCOPES, headers=headers)
 
-    def create_webhook_for_event(self, callback_url: str,  scope: dict, event: str, filter_expression: str=None, region: str = None, hookExpiry: str = None, **kwargs) -> dict:
+    def create_webhook_for_event(self, callback_url: str,  scope: dict, event: str, filter_expression: str=None, region: str = None, hookExpiry: str = None, **kwargs) -> Dict:
         """
         Add new webhook to receive the notification on a specified event.
 
@@ -97,7 +99,7 @@ class WebhooksClient(BaseOAuthClient):
             hookExpiry (str, optional): Optional. ISO8601 formatted date and time when the hook should expire and automatically be deleted. Not providing this parameter means the hook never expires. Example: "2023-06-14T17:04:10.444Z"
 
         Returns:
-            dict: code 201 for success
+            Dict: code 201 for success
 
         """
         headers = { "Content-Type": "application/vnd.api+json", "x-ads-region": region }
@@ -113,7 +115,7 @@ class WebhooksClient(BaseOAuthClient):
         return self._post(f"{WEBHOOKS_URL}/systems/data/events/{event}/hooks",
         scopes=READ_SCOPES, headers=headers, json=data).json()
     
-    def delete_webhook_for_event(self, event: str, hook_id: str, region: str = None) -> dict:
+    def delete_webhook_for_event(self, event: str, hook_id: str, region: str = None) -> Dict:
         """
         Deletes a webhook based on webhook ID
 
@@ -125,7 +127,7 @@ class WebhooksClient(BaseOAuthClient):
             hook_id (str, required): Webhook ID to delete
             region (str, optional): Specifies the geographical location (region) of the server that the request is executed on. Supported values are: "US", "EMEA". Default is "US".
         Returns:
-            dict: code 204 for success
+            Dict: code 204 for success
 
         """
         headers = { "Content-Type": "application/vnd.api+json", "x-ads-region": region }

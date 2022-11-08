@@ -3,7 +3,7 @@ Clients for working with the Forge Account Admin Management service.
 """
 # from os import path
 # from enum import Enum
-from typing import Union
+from typing import List, Dict
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
 
 BASE_URL = "https://developer.api.autodesk.com"
@@ -45,7 +45,7 @@ class AccountManagementClient(BaseOAuthClient):
         """
         BaseOAuthClient.__init__(self, token_provider, ACCOUNT_MANAGEMENT_URL)
 
-    def _get_paginated(self, url: str, **kwargs) -> list:
+    def _get_paginated(self, url: str, **kwargs) -> List:
         items = []
         while url:
             json = self._get(url, **kwargs).json()
@@ -57,7 +57,7 @@ class AccountManagementClient(BaseOAuthClient):
         return items
 
     
-    def get_users(self, account_id: str, user_id: str = None) -> dict:
+    def get_users(self, account_id: str, user_id: str = None) -> Dict:
         """
         If user_id is provided: Query the details of a specific user.
         If no user_id is provided: Query all the users in a specific ACC or BIM 360 account.
@@ -71,7 +71,7 @@ class AccountManagementClient(BaseOAuthClient):
             user_id (str, optional): User ID.
 
         Returns:
-            list(dict): Dictionary parsed from the response JSON.
+            List(Dict): Dictionary parsed from the response JSON.
 
         Examples:
             ```
@@ -92,7 +92,7 @@ class AccountManagementClient(BaseOAuthClient):
         return self._get(url,
             scopes=READ_SCOPES, headers=headers).json()
 
-    def search_companies(self, account_id: str, name: str, **kwargs) -> dict:
+    def search_companies(self, account_id: str, name: str, **kwargs) -> Dict:
         """
         Query all the companies with matching name.
 
@@ -106,7 +106,7 @@ class AccountManagementClient(BaseOAuthClient):
             **kwargs
 
         Returns:
-            list(dict): Dictionary parsed from the response JSON.
+            List(Dict): Dictionary parsed from the response JSON.
 
         Examples:
             ```
