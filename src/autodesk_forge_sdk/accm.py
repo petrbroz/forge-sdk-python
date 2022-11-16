@@ -268,13 +268,9 @@ class AccountManagementClient_BIM360(BaseOAuthClient):
             ```
         """
 
-        #url = f"/bim360/admin/v1/projects/{project_id}/users"
-
-        url = f"https://developer.api.autodesk.com/bim360/admin/v1/projects/{project_id}/users"
+        url = f"/projects/{project_id}/users"
 
         headers = { "Content-Type": "application/vnd.api+json" }
 
         return self._get_paginated(url,
             scopes=READ_SCOPES, headers=headers)
-
-    
