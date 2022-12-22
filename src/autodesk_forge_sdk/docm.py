@@ -2,7 +2,7 @@
 Clients for working with the Forge Document Management service.
 """
 # from os import path
-# from enum import Enum
+from enum import Enum
 from typing import Dict, List, Union
 from urllib import request, parse
 from .auth import BaseOAuthClient, Scope, TokenProviderInterface
@@ -12,6 +12,40 @@ DOCUMENT_MANAGEMENT_URL = f"{BASE_URL}/bim360/docs/v1"
 READ_SCOPES = [Scope.BUCKET_READ, Scope.DATA_READ]
 WRITE_SCOPES = [Scope.BUCKET_CREATE, Scope.DATA_CREATE, Scope.DATA_WRITE]
 DELETE_SCOPES = [Scope.BUCKET_DELETE]
+
+class Action(Enum):
+    """
+    The six permission levels in BIM 360 Document Management correspond to one or more actions
+
+    Example: Action.VIEW_ONLY corresponds to the actions ["VIEW", "COLLABORATE"].
+
+    **Documentation**: https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-projects-project_id-folders-folder_id-permissionsbatch-update-POST/#body-structure 
+    """
+    VIEW_OLNY = ["VIEW", "COLLABORATE"]
+    VIEW_DOWNLOAD = VIEW_OLNY + ["DOWNLOAD"]
+    UPLOAD_ONLY = ["PUBLISH"]
+    VIEW_DOWNLOAD_UPLOAD = VIEW_DOWNLOAD + UPLOAD_ONLY
+    VIEW_DOWNLOAD_UPLOAD_EDIT = VIEW_DOWNLOAD_UPLOAD + ["EDIT"]
+    FULL_CONTROLLER = VIEW_DOWNLOAD_UPLOAD_EDIT + ["CONTROL"]
+
+class Subject:
+
+    def __init__(self, subject_id: str, subject_type: str, actions: Union[Action, list]):
+
+        if isinstance(actions, Action):
+            actions = actions.value
+
+        self.subject_id = subject_id
+        self.subject_type = subject_type
+        self.actions = actions
+
+    def to_dict(self):
+
+        return {
+            "subjectId":self.subject_id,
+            "subjectType":self.subject_type,
+            "actions":self.actions
+        }
 
 class DocumentManagementClient(BaseOAuthClient):
     """
@@ -190,3 +224,35 @@ class DocumentManagementClient(BaseOAuthClient):
 
         return self._get(f"{DOCUMENT_MANAGEMENT_URL}/projects/{project_id}/folders/{folder_id}/permissions",
         scopes=READ_SCOPES, headers=headers).json()
+    
+    def batch_update_permissions(self, project_id: str, folder_id: str, subject: Union[List[Subject], List[dict]]) -> Dict:
+        """
+        Updates the permissions assigned to multiple users, roles, and companies for a folder. This endpoint replaces the permissions that were previously assigned to the user for this folder.
+
+        **Documentation**:
+        https://forge.autodesk.com/en/docs/acc/v1/reference/http/document-management-projects-project_id-folders-folder_id-permissionsbatch-update-POST/
+
+        Args:
+            project_id (str, required): The ID of the project. This corresponds to project ID in the Data Management API. To convert a project ID in the Data Management API into a project ID in the BIM 360 API you need to remove the “b.” prefix.
+            
+            folder_id (str, required): The ID (URN) of the folder.
+
+            subject_id (str, required): The ID of the user, role, or company. To verify the subjectId of the user, role, or company, use GET permissions.
+
+            subject (list[Subject] | list[dict], required): A list of subjects and permissions. Can be user, role, company. Example: [{'subjectId': '25339726-867a-49f1-9ba4-d48f353ab562', 'subjectType': 'USER', 'actions': ['VIEW', 'COLLABORATE']}] Where:
+            autodesk_id (str, required): The Autodesk ID of the user, role or company.
+            subject_type (str, required): The type of subject. Possible values: USER, COMPANY, ROLE.
+            actions (list, required):Permitted actions for the user, role, or company. Possible values: PUBLISH, VIEW, DOWNLOAD, COLLABORATE, EDIT, CONTROL, PUBLISH_MARKUP.
+
+        Returns:
+            Dict: a list of dictionaries containing data on the users with access and their permissions
+
+        """
+        headers = { "Content-Type": "application/json" }
+
+        for i, s in enumerate(subject):
+            if isinstance(s, Subject):
+                subject[i] = s.to_dict()
+
+        return self._post(f"/projects/{project_id}/folders/{folder_id}/permissions:batch-update",
+        scopes=WRITE_SCOPES, headers=headers, json=subject).json()
