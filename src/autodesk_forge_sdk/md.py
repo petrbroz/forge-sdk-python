@@ -146,10 +146,12 @@ class ModelDerivativeClient(BaseOAuthClient):
         headers = {}
         if "force" in kwargs:
             headers["x-ads-force"] = "true"
-        # TODO: what about the EMEA endpoint?
+        if "output_region" in kwargs:
+            if kwargs["output_region"] == "EMEA":
+                return self._post("/regions/eu/designdata/job", scopes=WRITE_SCOPES, json=json, headers=headers).json()
         return self._post("/designdata/job", scopes=WRITE_SCOPES, json=json, headers=headers).json()
 
-    def get_thumbnail(self, urn: str, width: int = None, height: int = None) -> bytes:
+    def get_thumbnail(self, urn: str, width: int = None, height: int = None, region: str = "US") -> bytes:
         """
         Download thumbnail for a source file.
 
@@ -168,6 +170,8 @@ class ModelDerivativeClient(BaseOAuthClient):
                 If height is omitted, but width is specified, the implicit value for height
                 will match width. If both width and height are omitted, the server
                 will return a thumbnail closest to a width of 200, if available.
+            region (str, optional): Region where the bucket resides.
+                Acceptable values: US, EMEA. Default: US.
 
         Returns:
             bytes: buffer containing the thumbnail PNG image.
@@ -189,11 +193,13 @@ class ModelDerivativeClient(BaseOAuthClient):
             params["width"] = width
         if height:
             params["height"] = height
-        # TODO: what about the EMEA endpoint?
-        endpoint = "/designdata/{}/thumbnail".format(urn)
+        if region == "EMEA":
+            endpoint = "/regions/eu/designdata/{}/thumbnail".format(urn)
+        else:
+            endpoint = "/designdata/{}/thumbnail".format(urn)
         return self._get(endpoint, scopes=READ_SCOPES, params=params).content
 
-    def get_manifest(self, urn: str) -> Dict:
+    def get_manifest(self, urn: str, region: str = "US") -> Dict:
         """
         Retrieve the manifest for the source design specified by the urn URI parameter.
         The manifest is a list containing information about the derivatives generated
@@ -205,6 +211,8 @@ class ModelDerivativeClient(BaseOAuthClient):
 
         Args:
             urn (str): Base64-encoded ID of the source file.
+            region (str, optional): Region where the bucket resides.
+                Acceptable values: US, EMEA. Default: US.
 
         Returns:
             Dict: Parsed manifest JSON.
@@ -219,11 +227,13 @@ class ModelDerivativeClient(BaseOAuthClient):
             print(manifest)
             ```
         """
-        # TODO: what about the EMEA endpoint?
-        endpoint = "/designdata/{}/manifest".format(urn)
+        if region == "EMEA":
+            endpoint = "/regions/eu/designdata/{}/manifest".format(urn)
+        else:
+            endpoint = "/designdata/{}/manifest".format(urn)
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def delete_manifest(self, urn: str):
+    def delete_manifest(self, urn: str, region: str = "US"):
         """
         Delete the manifest and all its translated output files (derivatives).
         However, it does not delete the design source file.
@@ -233,6 +243,8 @@ class ModelDerivativeClient(BaseOAuthClient):
 
         Args:
             urn (str): Base64-encoded ID of the source file.
+            region (str, optional): Region where the bucket resides.
+                Acceptable values: US, EMEA. Default: US.
 
         Examples:
             ```
@@ -244,11 +256,13 @@ class ModelDerivativeClient(BaseOAuthClient):
             client.delete_manifest(URN)
             ```
         """
-        # TODO: what about the EMEA endpoint?
-        endpoint = "/designdata/{}/manifest".format(urn)
+        if region == "EMEA":
+            endpoint = "/regions/eu/designdata/{}/manifest".format(urn)
+        else:
+            endpoint = "/designdata/{}/manifest".format(urn)
         self._delete(endpoint, scopes=WRITE_SCOPES)
 
-    def get_metadata(self, urn: str) -> Dict:
+    def get_metadata(self, urn: str, region: str = "US") -> Dict:
         """
         Returns a list of model view (metadata) IDs for a design model. The metadata ID enables
         end users to select an object tree and properties for a specific model view.
@@ -258,6 +272,8 @@ class ModelDerivativeClient(BaseOAuthClient):
 
         Args:
             urn (str): Base64-encoded ID of the source file.
+            region (str, optional): Region where the bucket resides.
+                Acceptable values: US, EMEA. Default: US.
 
         Returns:
             Dict: Parsed response JSON.
@@ -273,11 +289,13 @@ class ModelDerivativeClient(BaseOAuthClient):
             print(metadata)
             ```
         """
-        # TODO: what about the EMEA endpoint?
-        endpoint = "/designdata/{}/metadata".format(urn)
+        if region == "EMEA":
+            endpoint = "/regions/eu/designdata/{}/metadata".format(urn)
+        else:
+            endpoint = "/designdata/{}/metadata".format(urn)
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def get_viewable_tree(self, urn: str, guid: str) -> Dict:
+    def get_viewable_tree(self, urn: str, guid: str, region: str = "US") -> Dict:
         """
         Return an object tree, i.e., a hierarchical list of objects for a model view.
 
@@ -287,6 +305,8 @@ class ModelDerivativeClient(BaseOAuthClient):
         Args:
             urn (str): Base64-encoded ID of the source file.
             guid (str): ID of one of the viewables extracted from the source file.
+            region (str, optional): Region where the bucket resides.
+                Acceptable values: US, EMEA. Default: US.
 
         Returns:
             Dict: Parsed response JSON.
@@ -302,11 +322,13 @@ class ModelDerivativeClient(BaseOAuthClient):
             print(tree)
             ```
         """
-        # TODO: what about the EMEA endpoint?
-        endpoint = "/designdata/{}/metadata/{}".format(urn, guid)
+        if region == "EMEA":
+            endpoint = "/regions/eu/designdata/{}/metadata/{}".format(urn, guid)
+        else:
+            endpoint = "/designdata/{}/metadata/{}".format(urn, guid)
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def get_viewable_properties(self, urn: str, guid: str) -> Dict:
+    def get_viewable_properties(self, urn: str, guid: str, region: str = "US") -> Dict:
         """
         Return a list of properties for each object in an object tree. Properties are returned
         according to object ID and do not follow a hierarchical structure.
@@ -317,6 +339,8 @@ class ModelDerivativeClient(BaseOAuthClient):
         Args:
             urn (str): Base64-encoded ID of the source file.
             guid (str): ID of one of the viewables extracted from the source file.
+            region (str, optional): Region where the bucket resides.
+                Acceptable values: US, EMEA. Default: US.
 
         Returns:
             Dict: Parsed response JSON.
@@ -331,11 +355,13 @@ class ModelDerivativeClient(BaseOAuthClient):
             print(props)
             ```
         """
-        # TODO: what about the EMEA endpoint?
-        endpoint = "/designdata/{}/metadata/{}/properties".format(urn, guid)
+        if region == "EMEA":
+            endpoint = "/regions/eu/designdata/{}/metadata/{}/properties".format(urn, guid)
+        else:
+            endpoint = "/designdata/{}/metadata/{}/properties".format(urn, guid)
         return self._get(endpoint, scopes=READ_SCOPES).json()
 
-    def get_derivative_info(self, urn: str, deriv_urn: str) -> Dict:
+    def get_derivative_info(self, urn: str, deriv_urn: str, region: str = "US") -> Dict:
         """
         Return information about the specified derivative.
 
@@ -345,17 +371,21 @@ class ModelDerivativeClient(BaseOAuthClient):
         Args:
             urn (str): Base64-encoded ID of the source file.
             deriv_urn (str): ID of one of the derivatives generated from the source file.
+            region (str, optional): Region where the bucket resides.
+                Acceptable values: US, EMEA. Default: US.
 
         Returns:
             Dict: Derivative information, currently with just a single property, "size",
             indicating the size of the derivative in bytes.
         """
-        # TODO: what about the EMEA endpoint?
-        endpoint = "/designdata/{}/manifest/{}".format(urn, deriv_urn)
+        if region == "EMEA":
+            endpoint = "/regions/eu/designdata/{}/manifest/{}".format(urn, deriv_urn)
+        else:
+            endpoint = "/designdata/{}/manifest/{}".format(urn, deriv_urn)
         resp = self._head(endpoint, scopes=READ_SCOPES)
         return { "size": int(resp.headers["Content-Length"]) }
 
-    def get_derivative(self, urn: str, deriv_urn: str, byte_range: tuple=None) -> bytes:
+    def get_derivative(self, urn: str, deriv_urn: str, byte_range: tuple = None) -> bytes:
         """
         Download a derivative generated from a specific source model. To download the derivative,
         you need to specify its URN which can be retrieved from the Model Derivative manifest.

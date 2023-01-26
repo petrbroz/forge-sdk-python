@@ -14,3 +14,6 @@ from autodesk_forge_sdk import RelationshipManagementClient
 FORGE_CLIENT_ID = os.environ["FORGE_CLIENT_ID"]
 FORGE_CLIENT_SECRET = os.environ["FORGE_CLIENT_SECRET"]
 FORGE_BUCKET = os.environ["FORGE_BUCKET"]
+URN = "dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6aGVubi1tYWluLWJ1Y2tldC9yYWNiYXNpY3NhbXBsZXByb2plY3QucnZ0"
+
+
