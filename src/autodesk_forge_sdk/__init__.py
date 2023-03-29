@@ -9,5 +9,4 @@ from .md import ModelDerivativeClient, urnify
 from .docm import DocumentManagementClient, Action, Subject
 from .accm import AccountManagementClient, AccountManagementClient_BIM360
 from .webhooks import WebhooksClient
-from .reviews import ReviewsClient
 from .relationship import RelationshipManagementClient
