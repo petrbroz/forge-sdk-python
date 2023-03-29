@@ -4,7 +4,8 @@ Clients for working with the Forge Authentication service.
 
 from enum import Enum
 from datetime import datetime, timedelta
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
+from typing import Dict, List
 from .base import BaseClient
 
 BASE_URL = "https://developer.api.autodesk.com/authentication/v1"
@@ -87,7 +88,7 @@ class Scope(Enum):
 
 def get_authorization_url(
         client_id: str, response_type: str, redirect_uri: str,
-        scopes: list[Scope], state: str = None
+        scopes: List[Scope], state: str = None
     ) -> str:
     """
     Generate a URL to redirect an end user to in order to acquire the user’s consent
@@ -101,7 +102,7 @@ def get_authorization_url(
             for implicit grant flow.
         redirect_uri (str): URL-encoded callback URL that the end user will be redirected to
             after completing the authorization flow.
-        scopes (list[Scope]): List of required scopes.
+        scopes (List[Scope]): List of required scopes.
         state (str, optional): Payload containing arbitrary data that the authentication flow
             will pass back verbatim in a state query parameter to the callback URL.
 
@@ -117,14 +118,13 @@ def get_authorization_url(
         print(url)
         ```
     """
-    url = 'https://developer.api.autodesk.com/authentication/v1/authorize'
-    url = url + '?client_id={}'.format(quote(client_id))
-    url = url + '&response_type={}'.format(response_type)
-    url = url + '&redirect_uri={}'.format(quote(redirect_uri))
-    url = url + \
-        '&scope={}'.format(quote(' '.join(map(lambda s: s.value, scopes))))
+    url = "https://developer.api.autodesk.com/authentication/v1/authorize"
+    url += f"?response_type={quote(response_type)}"
+    url += f"&client_id={quote(client_id)}"
+    url += f"&redirect_uri={quote_plus(redirect_uri)}"
+    url += f"&scope={'%20'.join(map(lambda s: s.value, scopes))}"
     if state:
-        url += '&state={}'.format(quote(state))
+        url += f"&state={state}"
     return url
 
 
@@ -144,7 +144,7 @@ class AuthenticationClient(BaseClient):
         """
         BaseClient.__init__(self, base_url)
 
-    def authenticate(self, client_id: str, client_secret: str, scopes: list[Scope]) -> dict:
+    def authenticate(self, client_id: str, client_secret: str, scopes: List[Scope]) -> Dict:
         """
         Generate a two-legged access token for specific set of scopes.
 
@@ -154,10 +154,10 @@ class AuthenticationClient(BaseClient):
         Args:
             client_id (str): Client ID of the app.
             client_secret (str): Client secret of the app.
-            scopes (list[Scope]): List of required scopes.
+            scopes (List[Scope]): List of required scopes.
 
         Returns:
-            dict: Parsed response object with properties `access_token`, `token_type`,
+            Dict: Parsed response object with properties `access_token`, `token_type`,
             and `expires_in`.
 
         Examples:
@@ -177,7 +177,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post('/authenticate', form=form).json()
 
-    def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -> dict:
+    def get_token(self, client_id: str, client_secret: str, code: str, redirect_uri: str) -> Dict:
         """
         Exchange an authorization code extracted from `get_authorization_url` callback
         for a three-legged access token. This API will only be used when the 'Authorization Code'
@@ -194,7 +194,7 @@ class AuthenticationClient(BaseClient):
                 used in the `get_authorization_url`.
 
         Returns:
-            dict: Parsed response object with properties `token_type`, `access_token`,
+            Dict: Parsed response object with properties `token_type`, `access_token`,
                 `refresh_token`, and `expires_in`.
 
         Examples:
@@ -221,7 +221,7 @@ class AuthenticationClient(BaseClient):
         return self._post('/gettoken', form=form).json()
 
     def refresh_token(
-        self, client_id: str, client_secret: str, refresh_token: str, scopes: list[Scope]) -> dict:
+        self, client_id: str, client_secret: str, refresh_token: str, scopes: List[Scope]) -> Dict:
         """
         Acquire a new access token by using the refresh token provided by `get_token`.
 
@@ -232,10 +232,10 @@ class AuthenticationClient(BaseClient):
             client_id (str): Client ID of the app.
             client_secret (str): Client secret of the app.
             refresh_token (str): Refresh token used to acquire a new access token.
-            scopes (list[str]): List of required scopes.
+            scopes (List[str]): List of required scopes.
 
         Returns:
-            dict: Parsed response object with properties `token_type`, `access_token`,
+            Dict: Parsed response object with properties `token_type`, `access_token`,
                 `refresh_token`, and `expires_in`.
 
         Examples:
@@ -258,7 +258,7 @@ class AuthenticationClient(BaseClient):
         }
         return self._post('/refreshtoken', form=form).json()
 
-    def get_user_profile(self, access_token: str) -> dict:
+    def get_user_profile(self, access_token: str) -> Dict:
         """
         Get the profile information of an authorizing end user in a three-legged context.
 
@@ -268,7 +268,7 @@ class AuthenticationClient(BaseClient):
             access_token (str): Token obtained via a three-legged OAuth flow.
 
         Returns:
-            dict: Parsed response object with properties `userId`, `userName`, `emaillId`,
+            Dict: Parsed response object with properties `userId`, `userName`, `emaillId`,
                 `firstName`, `lastName`, etc.
 
         Examples:
@@ -288,12 +288,12 @@ class TokenProviderInterface:
     Interface for any class that can provide access tokens to API clients
     based on a set of OAuth scopes.
     """
-    def get_token(self, scopes: list[Scope]) -> str:
+    def get_token(self, scopes: List[Scope]) -> str:
         """
         Generates access token for given set of scopes.
 
         Args:
-            scopes (list[Scope]): List of scopes that the generated access token should support.
+            scopes (List[Scope]): List of scopes that the generated access token should support.
 
         Returns:
             str: Access token.
@@ -318,7 +318,7 @@ class SimpleTokenProvider(TokenProviderInterface):
         """
         self.access_token = access_token
 
-    def get_token(self, scopes: list[Scope]) -> str:
+    def get_token(self, scopes: List[Scope]) -> str:
         return self.access_token
 
 
@@ -341,7 +341,7 @@ class OAuthTokenProvider(TokenProviderInterface):
         self.auth_client = AuthenticationClient()
         self.cache = {}
 
-    def get_token(self, scopes: list[Scope]) -> str:
+    def get_token(self, scopes: List[Scope]) -> str:
         cache_key = "+".join(map(lambda s: s.value, scopes))
         now = datetime.now()
         if cache_key in self.cache:
@@ -386,7 +386,7 @@ class BaseOAuthClient(BaseClient):
             del kwargs["scopes"]
         return BaseClient._get(self, url, **kwargs)
 
-    def _post(self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs):
+    def _post(self, url: str, form: Dict = None, json: Dict = None, buff=None, **kwargs):
         if "scopes" in kwargs:
             if "headers" not in kwargs:
                 kwargs["headers"] = {}
@@ -394,7 +394,7 @@ class BaseOAuthClient(BaseClient):
             del kwargs["scopes"]
         return BaseClient._post(self, url, form, json, buff, **kwargs)
 
-    def _put(self, url: str, form: dict = None, json: dict = None, buff=None, **kwargs):
+    def _put(self, url: str, form: Dict = None, json: Dict = None, buff=None, **kwargs):
         if "scopes" in kwargs:
             if "headers" not in kwargs:
                 kwargs["headers"] = {}
@@ -410,7 +410,7 @@ class BaseOAuthClient(BaseClient):
             del kwargs["scopes"]
         return BaseClient._delete(self, url, **kwargs)
 
-    def _set_auth_headers(self, headers: dict, scopes: list[Scope]):
+    def _set_auth_headers(self, headers: Dict, scopes: List[Scope]):
         if "Authorization" not in headers:
             auth = self.token_provider.get_token(scopes)
             headers["Authorization"] = "Bearer {}".format(auth["access_token"])
