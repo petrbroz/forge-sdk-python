@@ -288,7 +288,7 @@ class TokenProviderInterface:
     Interface for any class that can provide access tokens to API clients
     based on a set of OAuth scopes.
     """
-    def get_token(self, scopes: List[Scope]) -> str:
+    def get_token(self, scopes: List[Scope]) -> dict:
         """
         Generates access token for given set of scopes.
 
@@ -296,7 +296,7 @@ class TokenProviderInterface:
             scopes (List[Scope]): List of scopes that the generated access token should support.
 
         Returns:
-            str: Access token.
+            dict: Access token.
         """
         raise NotImplementedError()
 
@@ -313,13 +313,15 @@ class SimpleTokenProvider(TokenProviderInterface):
         Create new instance of the provider.
 
         Args:
-            access_token (str): Token that will always be returned by
-                `SimpleTokenProvider.get_token`.
+            access_token (dict): Token will be returned by
+                property 'access_token'
         """
         self.access_token = access_token
 
-    def get_token(self, scopes: List[Scope]) -> str:
-        return self.access_token
+    def get_token(self, scopes: List[Scope]) -> dict:
+        return {
+            "access_token": self.access_token
+        }
 
 
 class OAuthTokenProvider(TokenProviderInterface):
