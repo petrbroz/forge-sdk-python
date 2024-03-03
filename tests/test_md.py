@@ -1,5 +1,6 @@
 import unittest
-from .context import ModelDerivativeClient, urnify, OAuthTokenProvider, FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_BUCKET
+from context import ModelDerivativeClient, urnify, OAuthTokenProvider, FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_BUCKET
+
 
 class ModelDerivativeClientTestSuite(unittest.TestCase):
     """Forge Model Derivative client test cases."""
@@ -22,8 +23,12 @@ class ModelDerivativeClientTestSuite(unittest.TestCase):
     #         output.write(png)
 
     # def test_get_manifest(self):
-    #     manifest = self.client.get_manifest('dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6cGV0cmJyb3otc2FtcGxlcy9ybWVfYmFzaWNfc2FtcGxlX3Byb2plY3QucnZ0')
+    #     manifest = self.client.get_manifest("dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6aGVubi1tYWluLWJ1Y2tldC9yYWNiYXNpY3NhbXBsZXByb2plY3QucnZ0", "EMEA")
     #     assert manifest
+
+    # def test_get_metadata(self):
+    #     metadata = self.client.get_metadata("dXJuOmFkc2sub2JqZWN0czpvcy5vYmplY3Q6aGVubi1tYWluLWJ1Y2tldC9yYWNiYXNpY3NhbXBsZXByb2plY3QucnZ0", "EMEA")
+    #     assert metadata
 
 if __name__ == "__main__":
     unittest.main()
